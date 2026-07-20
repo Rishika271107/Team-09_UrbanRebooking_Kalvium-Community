@@ -5,6 +5,12 @@ import Link from "next/link";
 import AuthLayout from "@/components/AuthLayout";
 import AuthCard from "@/components/AuthCard";
 import InputField from "@/components/InputField";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { registerUser } from "@/lib/actions";
 
 const STATS = [
   { value: "1M+", label: "Happy customers" },
@@ -12,85 +18,74 @@ const STATS = [
   { value: "4.8★", label: "Avg. rating" },
 ];
 
-interface FormState {
-  fullName: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  agreeTerms: boolean;
-}
+const signupSchema = z.object({
+  fullName: z.string().min(1, "Full name is required."),
+  email: z.string().min(1, "Email is required.").email("Please enter a valid email address."),
+  phone: z.string().min(1, "Phone number is required."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  confirmPassword: z.string().min(1, "Please confirm your password."),
+  agreeTerms: z.boolean().refine((val) => val === true, {
+    message: "You must agree to the Terms & Privacy Policy.",
+  }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
 
-interface FormErrors {
-  fullName?: string;
-  email?: string;
-  phone?: string;
-  password?: string;
-  confirmPassword?: string;
-  agreeTerms?: string;
-}
-
-function validateEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
-  const [form, setForm] = useState<FormState>({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-    agreeTerms: false,
-  });
-
-  const [errors, setErrors] = useState<FormErrors>({});
+  const router = useRouter();
+  const [serverError, setServerError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-    if (errors[name as keyof FormErrors]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+      agreeTerms: false,
+    },
+  });
 
-  const validate = (): FormErrors => {
-    const errs: FormErrors = {};
-    if (!form.fullName.trim()) errs.fullName = "Full name is required.";
-    if (!form.email.trim()) {
-      errs.email = "Email is required.";
-    } else if (!validateEmail(form.email)) {
-      errs.email = "Please enter a valid email address.";
-    }
-    if (!form.phone.trim()) errs.phone = "Phone number is required.";
-    if (!form.password) {
-      errs.password = "Password is required.";
-    } else if (form.password.length < 8) {
-      errs.password = "Password must be at least 8 characters.";
-    }
-    if (!form.confirmPassword) {
-      errs.confirmPassword = "Please confirm your password.";
-    } else if (form.password !== form.confirmPassword) {
-      errs.confirmPassword = "Passwords do not match.";
-    }
-    if (!form.agreeTerms) {
-      errs.agreeTerms = "You must agree to the Terms & Privacy Policy.";
-    }
-    return errs;
-  };
+  const agreeTerms = watch("agreeTerms");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
+  const onSubmit = async (data: SignupFormValues) => {
+    setServerError("");
+    const res = await registerUser({
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+    });
+
+    if (res.error) {
+      setServerError(res.error);
+    } else {
+      // Auto login
+      const loginRes = await signIn("credentials", {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+      });
+
+      if (loginRes?.error) {
+        setServerError("Account created but failed to auto-login.");
+        setSubmitted(true);
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
     }
-    setSubmitted(true);
   };
 
   return (
@@ -124,22 +119,28 @@ export default function SignupPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-              <InputField id="fullName" label="Full Name" placeholder="Enter your full name" value={form.fullName} onChange={handleChange} error={errors.fullName} required />
-              <InputField id="email" label="Email" type="email" placeholder="customer@urban.co" value={form.email} onChange={handleChange} error={errors.email} required />
-              <InputField id="phone" label="Phone Number" type="tel" placeholder="+91 XXXXX XXXXX" value={form.phone} onChange={handleChange} error={errors.phone} required />
-              <InputField id="password" label="Password" type="password" placeholder="Create password" value={form.password} onChange={handleChange} error={errors.password} required />
-              <InputField id="confirmPassword" label="Confirm Password" type="password" placeholder="Confirm password" value={form.confirmPassword} onChange={handleChange} error={errors.confirmPassword} required />
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+              {serverError && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
+                  {serverError}
+                </div>
+              )}
+              
+              <InputField id="fullName" label="Full Name" placeholder="Enter your full name" {...register("fullName")} error={errors.fullName?.message} required />
+              <InputField id="email" label="Email" type="email" placeholder="customer@urban.co" {...register("email")} error={errors.email?.message} required />
+              <InputField id="phone" label="Phone Number" type="tel" placeholder="+91 XXXXX XXXXX" {...register("phone")} error={errors.phone?.message} required />
+              <InputField id="password" label="Password" type="password" placeholder="Create password" {...register("password")} error={errors.password?.message} required />
+              <InputField id="confirmPassword" label="Confirm Password" type="password" placeholder="Confirm password" {...register("confirmPassword")} error={errors.confirmPassword?.message} required />
 
               <div className="mt-1">
                 <label className="flex items-start gap-3 cursor-pointer select-none">
                   <div className="relative flex-shrink-0 mt-0.5">
-                    <input id="agreeTerms" name="agreeTerms" type="checkbox" checked={form.agreeTerms} onChange={handleChange} className="sr-only peer" />
+                    <input id="agreeTerms" type="checkbox" {...register("agreeTerms")} className="sr-only peer" />
                     <div
-                      className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${form.agreeTerms ? "bg-[#047260] border-[#047260]" : "border-slate-300 bg-white"} ${errors.agreeTerms ? "border-red-400" : ""}`}
-                      onClick={() => setForm((prev) => ({ ...prev, agreeTerms: !prev.agreeTerms }))}
+                      className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${agreeTerms ? "bg-[#047260] border-[#047260]" : "border-slate-300 bg-white"} ${errors.agreeTerms ? "border-red-400" : ""}`}
+                      onClick={() => setValue("agreeTerms", !agreeTerms)}
                     >
-                      {form.agreeTerms && (
+                      {agreeTerms && (
                         <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
@@ -152,11 +153,11 @@ export default function SignupPage() {
                     <Link href="#" className="text-[#047260] font-medium hover:underline">Privacy Policy</Link>
                   </span>
                 </label>
-                {errors.agreeTerms && <p className="text-xs text-red-500 mt-1.5 ml-7">{errors.agreeTerms}</p>}
+                {errors.agreeTerms && <p className="text-xs text-red-500 mt-1.5 ml-7">{errors.agreeTerms.message}</p>}
               </div>
 
-              <button type="submit" className="w-full h-[46px] mt-2 bg-[#047260] hover:bg-[#035d4f] text-white text-sm font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#047260] focus:ring-offset-2">
-                Create account
+              <button type="submit" disabled={isSubmitting} className="w-full h-[46px] mt-2 bg-[#047260] hover:bg-[#035d4f] text-white text-sm font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#047260] focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                {isSubmitting ? "Creating account..." : "Create account"}
               </button>
 
               <p className="text-center text-sm text-slate-500 mt-1">
