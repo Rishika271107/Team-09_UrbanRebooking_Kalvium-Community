@@ -5,12 +5,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
 import { Eye, EyeOff } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const STATS = [
   { value: "1M+", label: "Happy customers" },
   { value: "40k+", label: "Verified pros" },
   { value: "4.8★", label: "Avg. rating" },
 ];
+
+const loginSchema = z.object({
+  email: z.string().min(1, "Email is required.").email("Please enter a valid email."),
+  password: z.string().min(1, "Password is required."),
+  rememberMe: z.boolean().optional(),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +35,14 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validateEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  const onSubmit = async (data: LoginFormValues) => {
+    setServerError("");
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+      });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -164,7 +184,12 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
+            {serverError && (
+              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
+                {serverError}
+              </div>
+            )}
             {/* Email */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="email" className="text-sm font-medium text-slate-700">
@@ -172,15 +197,10 @@ export default function LoginPage() {
               </label>
               <input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
                 placeholder="customer@urban.co"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
-                }}
+                {...register("email")}
                 className={`w-full px-3.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition-colors ${errors.email ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-[#D1D5DB] focus:border-[#00897B] focus:ring-2 focus:ring-[#00897B]/10"}`}
                 style={{
                   height: "40px",
@@ -188,7 +208,7 @@ export default function LoginPage() {
                   border: errors.email ? "1px solid #f87171" : "1px solid #D1D5DB",
                 }}
               />
-              {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
 
             {/* Password */}
@@ -209,15 +229,10 @@ export default function LoginPage() {
               <div className="relative">
                 <input
                   id="password"
-                  name="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors((p) => ({ ...p, password: undefined }));
-                  }}
+                  {...register("password")}
                   className={`w-full pr-10 px-3.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition-colors ${errors.password ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-[#D1D5DB] focus:border-[#00897B] focus:ring-2 focus:ring-[#00897B]/10"}`}
                   style={{
                     height: "40px",
@@ -235,14 +250,14 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
+              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
             </div>
 
             {/* Remember Me */}
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <div
                 className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${rememberMe ? "bg-[#00897B] border-[#00897B]" : "border-slate-300 bg-white"}`}
-                onClick={() => setRememberMe(!rememberMe)}
+                onClick={() => setValue("rememberMe", !rememberMe)}
               >
                 {rememberMe && (
                   <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -275,8 +290,8 @@ export default function LoginPage() {
                 backgroundColor: "#00897B",
                 fontSize: "15px",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#00796B")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#00897B")}
+              onMouseEnter={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#00796B"; }}
+              onMouseLeave={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#00897B"; }}
             >
               {isSubmitting ? "Signing in…" : "Sign in"}
             </button>
