@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Eye, EyeOff } from "lucide-react";
 
 const STATS = [
@@ -11,16 +13,21 @@ const STATS = [
 ];
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFormError(null);
+
     const errs: { email?: string; password?: string } = {};
     if (!email.trim()) errs.email = "Email is required.";
     else if (!validateEmail(email)) errs.email = "Please enter a valid email.";
@@ -30,8 +37,27 @@ export default function LoginPage() {
       return;
     }
     setErrors({});
-    // Placeholder — no backend connected
-    alert("Sign in submitted (placeholder)");
+    setIsSubmitting(true);
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (!result || result.error) {
+        setFormError("Invalid email or password. Please try again.");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setFormError("Something went wrong while signing in. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -221,10 +247,20 @@ export default function LoginPage() {
               </span>
             </label>
 
+            {formError && (
+              <p
+                className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+                role="alert"
+              >
+                {formError}
+              </p>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full text-white font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00897B]"
+              disabled={isSubmitting}
+              className="w-full text-white font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00897B] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 height: "40px",
                 borderRadius: "10px",
@@ -234,7 +270,7 @@ export default function LoginPage() {
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#00796B")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#00897B")}
             >
-              Sign in
+              {isSubmitting ? "Signing in…" : "Sign in"}
             </button>
 
             {/* Signup Redirect */}
@@ -261,7 +297,7 @@ export default function LoginPage() {
             <p className="text-slate-500" style={{ fontSize: "14px", lineHeight: "1.5" }}>
               customer@urban.co • pro@urban.co • admin@urban.co
               <br />
-              (any password)
+              (password: password123, after running the seed script)
             </p>
           </div>
         </div>
