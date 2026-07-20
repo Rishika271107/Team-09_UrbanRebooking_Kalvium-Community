@@ -1,0 +1,145 @@
+// Prisma schema for the Urban Company One-Click Rebooking System
+// See urban-company-rebooking-prd.md for the data model this implements.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum BookingStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum SlotType {
+  AVAILABLE
+  BLOCKED
+  BOOKED
+}
+
+enum RebookingOutcome {
+  SUCCESS
+  PROFESSIONAL_UNAVAILABLE
+  SLOT_BLOCKED
+  SERVICE_INELIGIBLE
+  FAILED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      Role     @default(CUSTOMER)
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professional Professional?
+  bookings     Booking[]      @relation("CustomerBookings")
+
+  @@index([email])
+}
+
+model Professional {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills    String[]
+  active    Boolean  @default(true)
+  rating    Float    @default(5.0)
+  createdAt DateTime @default(now())
+
+  bookings      Booking[]      @relation("ProfessionalBookings")
+  calendarSlots CalendarSlot[]
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  name            String
+  category        String
+  price           Float
+  durationMinutes Int
+  locationRules   String?
+  createdAt       DateTime @default(now())
+
+  bookings Booking[]
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("CustomerBookings", fields: [userId], references: [id])
+  professionalId  String?
+  professional    Professional? @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+  address         String?
+  slotStart       DateTime?
+  slotEnd         DateTime?
+  status          BookingStatus @default(DRAFT)
+
+  // Traceability back to the booking this one was rebooked from (FR9)
+  sourceBookingId String?
+  sourceBooking   Booking?  @relation("Rebookings", fields: [sourceBookingId], references: [id])
+  rebookings      Booking[] @relation("Rebookings")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  calendarSlot CalendarSlot?
+
+  rebookingEventsAsSource RebookingEvent[] @relation("SourceBookingEvents")
+  rebookingEventsAsNew    RebookingEvent[] @relation("NewBookingEvents")
+
+  @@index([userId])
+  @@index([professionalId])
+  @@index([sourceBookingId])
+}
+
+model CalendarSlot {
+  id             String   @id @default(cuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  startTime      DateTime
+  endTime        DateTime
+  slotType       SlotType @default(AVAILABLE)
+
+  bookingId String?  @unique
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([professionalId, startTime])
+  @@index([professionalId, startTime])
+}
+
+model RebookingEvent {
+  id       String @id @default(cuid())
+
+  sourceBookingId String
+  sourceBooking   Booking @relation("SourceBookingEvents", fields: [sourceBookingId], references: [id])
+
+  newBookingId String?
+  newBooking   Booking? @relation("NewBookingEvents", fields: [newBookingId], references: [id])
+
+  outcome   RebookingOutcome
+  createdAt DateTime         @default(now())
+
+  @@index([sourceBookingId])
+}
