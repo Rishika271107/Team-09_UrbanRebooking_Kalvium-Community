@@ -9,6 +9,12 @@ export default async function DashboardPage() {
   if (!session) {
     redirect("/login");
   }
+  if (session.user.role === "PROFESSIONAL") {
+    redirect("/professional/calendar");
+  }
+  if (session.user.role === "ADMIN") {
+    redirect("/admin/analytics");
+  }
 
   return <DashboardClient userName={session.user.name ?? "there"} />;
 }

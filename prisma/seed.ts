@@ -111,6 +111,18 @@ async function main() {
     }
   }
 
+  // Seed one rebooking event so /admin/analytics has something to chart
+  // before anyone has clicked "Rebook" for real.
+  await prisma.rebookingEvent.upsert({
+    where: { id: "seed-rebooking-event-1" },
+    update: {},
+    create: {
+      id: "seed-rebooking-event-1",
+      sourceBookingId: "seed-booking-completed-1",
+      outcome: "SUCCESS",
+    },
+  });
+
   console.log("Seed complete. Demo accounts (password: password123):");
   console.log("  customer@urban.co");
   console.log("  pro@urban.co");

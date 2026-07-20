@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { Eye, EyeOff } from "lucide-react";
 
 const STATS = [
@@ -51,7 +51,15 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/dashboard");
+      const session = await getSession();
+      const destination =
+        session?.user?.role === "PROFESSIONAL"
+          ? "/professional/calendar"
+          : session?.user?.role === "ADMIN"
+          ? "/admin/analytics"
+          : "/dashboard";
+
+      router.push(destination);
       router.refresh();
     } catch {
       setFormError("Something went wrong while signing in. Please try again.");

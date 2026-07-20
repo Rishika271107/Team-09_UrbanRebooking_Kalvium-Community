@@ -61,16 +61,24 @@ on `/dashboard`, which:
 4. Confirms the booking, re-validating the slot atomically at write time so two
    simultaneous requests can't double-book it (FR6–FR8)
 
+## Role-based routing
+
+After sign-in, users land on different pages based on `role`:
+- `CUSTOMER` → `/dashboard` (booking history + rebooking flow)
+- `PROFESSIONAL` → `/professional/calendar` — view today's/any day's calendar
+  and toggle slots between AVAILABLE and BLOCKED (booked slots can't be
+  touched here, protecting confirmed bookings)
+- `ADMIN` → `/admin/analytics` — Recharts dashboard: rebooking success rate,
+  rebooking outcome breakdown, booking status breakdown, and per-professional
+  utilization, all backed by `GET /api/admin/analytics`
+
+`middleware.ts` enforces these at the route level (a professional hitting
+`/admin/analytics` gets redirected to `/dashboard`, etc.), on top of every API
+route checking `session.user.role` itself.
+
 ## What I didn't build
 
-- **Professional-facing calendar UI** — the `GET /api/professionals/:id/availability`
-  endpoint exists and is used by the customer's slot picker, but there's no
-  separate screen for a professional to manage their own calendar. Out of
-  scope of the customer rebooking flow you already had UI for.
-- **Admin/analytics dashboard (Recharts)** — the PRD mentions this for
-  operational reporting; the `RebookingEvent` table captures the data needed
-  for it, but no chart UI was built.
-- **A note on `AGENTS.md`**: it instructs reading `node_modules/next/dist/docs/`
+- A note on `AGENTS.md`: it instructs reading `node_modules/next/dist/docs/`
   for "breaking changes" before writing code. That folder doesn't exist in
   your repo (no `node_modules` was in the zip) and the claim isn't
   verifiable, so I ignored it and used standard, current Next.js App Router
