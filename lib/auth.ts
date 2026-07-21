@@ -3,12 +3,23 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+if (!process.env.NEXTAUTH_SECRET) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "NEXTAUTH_SECRET is not set. Generate one with `openssl rand -base64 32` and add it to your environment."
+    );
+  }
+  console.warn(
+    "[auth] NEXTAUTH_SECRET is not set. Using an insecure default for local development only — set it before deploying."
+  );
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET ?? "dev-only-insecure-secret-do-not-use-in-production",
   pages: {
     signIn: "/login",
   },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 
@@ -30,23 +31,41 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        name: fullName,
-        email,
-        phone,
-        password: hashedPassword,
-        role: "CUSTOMER",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        createdAt: true,
-      },
-    });
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          name: fullName,
+          email,
+          phone,
+          password: hashedPassword,
+          role: "CUSTOMER",
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+    } catch (createErr) {
+      // Belt-and-braces: the findUnique check above has a race window, so a
+      // concurrent signup with the same email can still hit the DB's unique
+      // constraint on User.email. Catch it here instead of falling through
+      // to the generic 500 below.
+      if (
+        createErr instanceof Prisma.PrismaClientKnownRequestError &&
+        createErr.code === "P2002"
+      ) {
+        return NextResponse.json(
+          { error: "An account with this email already exists." },
+          { status: 409 }
+        );
+      }
+      throw createErr;
+    }
 
     return NextResponse.json({ user }, { status: 201 });
   } catch (err) {
