@@ -3,6 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { availabilityQuerySchema } from "@/lib/validations";
 
+// Any authenticated user can view any professional's calendar for any date —
+// there's no ownership scoping (e.g. "only customers who've booked this pro
+// before"). This is a deliberate choice, not an oversight: professional ids
+// are unguessable cuid()s, and the customer rebooking flow needs to look up
+// availability for a professional the customer hasn't necessarily booked in
+// this session yet. If you add a public "browse professionals" feature,
+// revisit this — wider id exposure would make enumeration more practical.
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
