@@ -1,170 +1,145 @@
+// Prisma schema for the Urban Company One-Click Rebooking System
+// See urban-company-rebooking-prd.md for the data model this implements.
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  CUSTOMER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum BookingStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum SlotType {
+  AVAILABLE
+  BLOCKED
+  BOOKED
+}
+
+enum RebookingOutcome {
+  SUCCESS
+  PROFESSIONAL_UNAVAILABLE
+  SLOT_BLOCKED
+  SERVICE_INELIGIBLE
+  FAILED
+}
+
 model User {
-  id             String    @id @default(uuid())
-  fullName       String
-  email          String    @unique
-  hashedPassword String
-  phone          String
-  avatar         String?
-  label          String    @default("Customer")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  addresses      Address[]
-  bookings       Booking[]
-  reviews        Review[]
-  activities     Activity[]
-  notifications  Notification[]
-  paymentMethods PaymentMethod[]
-}
-
-model Professional {
-  id             String    @id @default(uuid())
-  name           String
-  avatar         String
-  rating         Float
-  jobsCompleted  Int
-  experience     String
-  category       String
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  bookings       Booking[]
-  reviews        Review[]
-}
-
-model Service {
-  id             String    @id @default(uuid())
-  name           String
-  description    String?
-  startingPrice  Float
-  icon           String
-  category       String
-  color          String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  bookings       Booking[]
-}
-
-model Address {
-  id             String    @id @default(uuid())
-  userId         String
-  addressLine    String
-  city           String
-  state          String
-  pincode        String
-  isDefault      Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  user           User      @relation(fields: [userId], references: [id])
-  bookings       Booking[]
-}
-
-model Booking {
-  id             String    @id @default(uuid())
-  serviceId      String
-  professionalId String
-  customerId     String
-  addressId      String
-  date           String
-  time           String
-  status         String    @default("UPCOMING") // UPCOMING, COMPLETED, CANCELLED
-  price          Float
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  service        Service      @relation(fields: [serviceId], references: [id])
-  professional   Professional @relation(fields: [professionalId], references: [id])
-  customer       User         @relation(fields: [customerId], references: [id])
-  address        Address      @relation(fields: [addressId], references: [id])
-  payment        Payment?
-  
-  originalRebooks RebookHistory[] @relation("OriginalBooking")
-  newRebooks      RebookHistory[] @relation("NewBooking")
-  review          Review?
-}
-
-model Payment {
-  id             String    @id @default(uuid())
-  bookingId      String    @unique
-  amount         Float
-  paymentMethod  String
-  status         String    @default("PENDING") // PENDING, SUCCESS, FAILED
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  booking        Booking   @relation(fields: [bookingId], references: [id])
-}
-
-model Review {
-  id             String    @id @default(uuid())
-  userId         String
-  professionalId String
-  bookingId      String    @unique
-  rating         Float
-  reviewText     String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  user           User         @relation(fields: [userId], references: [id])
-  professional   Professional @relation(fields: [professionalId], references: [id])
-  booking        Booking      @relation(fields: [bookingId], references: [id])
-}
-
-model Activity {
-  id             String    @id @default(uuid())
-  userId         String
-  title          String
-  description    String?
-  type           String
-  professionalName String?
-  date           String
-  createdAt      DateTime  @default(now())
-
-  user           User      @relation(fields: [userId], references: [id])
-}
-
-model Notification {
-  id             String    @id @default(uuid())
-  userId         String
-  title          String
-  message        String
-  readStatus     Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-
-  user           User      @relation(fields: [userId], references: [id])
-}
-
-model RebookHistory {
-  id                String    @id @default(uuid())
-  originalBookingId String
-  newBookingId      String
-  rebookDate        DateTime  @default(now())
-
-  originalBooking   Booking   @relation("OriginalBooking", fields: [originalBookingId], references: [id])
-  newBooking        Booking   @relation("NewBooking", fields: [newBookingId], references: [id])
-}
-
-model PaymentMethod {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String   
-  last4     String?  
-  provider  String?  
-  isDefault Boolean  @default(false)
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      Role     @default(CUSTOMER)
+  address   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id])
+  professional Professional?
+  bookings     Booking[]      @relation("CustomerBookings")
+
+  @@index([email])
 }
 
+model Professional {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills    String[]
+  active    Boolean  @default(true)
+  rating    Float    @default(5.0)
+  createdAt DateTime @default(now())
+
+  bookings      Booking[]      @relation("ProfessionalBookings")
+  calendarSlots CalendarSlot[]
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  name            String
+  category        String
+  price           Float
+  durationMinutes Int
+  locationRules   String?
+  createdAt       DateTime @default(now())
+
+  bookings Booking[]
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("CustomerBookings", fields: [userId], references: [id])
+  professionalId  String?
+  professional    Professional? @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+  address         String?
+  slotStart       DateTime?
+  slotEnd         DateTime?
+  status          BookingStatus @default(DRAFT)
+
+  // Traceability back to the booking this one was rebooked from (FR9)
+  sourceBookingId String?
+  sourceBooking   Booking?  @relation("Rebookings", fields: [sourceBookingId], references: [id])
+  rebookings      Booking[] @relation("Rebookings")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  calendarSlot CalendarSlot?
+
+  rebookingEventsAsSource RebookingEvent[] @relation("SourceBookingEvents")
+  rebookingEventsAsNew    RebookingEvent[] @relation("NewBookingEvents")
+
+  @@index([userId])
+  @@index([professionalId])
+  @@index([sourceBookingId])
+}
+
+model CalendarSlot {
+  id             String   @id @default(cuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  startTime      DateTime
+  endTime        DateTime
+  slotType       SlotType @default(AVAILABLE)
+
+  bookingId String?  @unique
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([professionalId, startTime])
+  @@index([professionalId, startTime])
+}
+
+model RebookingEvent {
+  id       String @id @default(cuid())
+
+  sourceBookingId String
+  sourceBooking   Booking @relation("SourceBookingEvents", fields: [sourceBookingId], references: [id])
+
+  newBookingId String?
+  newBooking   Booking? @relation("NewBookingEvents", fields: [newBookingId], references: [id])
+
+  outcome   RebookingOutcome
+  createdAt DateTime         @default(now())
+
+  @@index([sourceBookingId])
+}

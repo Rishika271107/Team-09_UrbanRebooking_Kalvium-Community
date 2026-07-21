@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import AuthLayout from "@/components/AuthLayout";
 import AuthCard from "@/components/AuthCard";
 import InputField from "@/components/InputField";
@@ -57,7 +59,11 @@ export default function SignupPage() {
     },
   });
 
-  const agreeTerms = watch("agreeTerms");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const onSubmit = async (data: SignupFormValues) => {
     setServerError("");
@@ -78,13 +84,52 @@ export default function SignupPage() {
         password: data.password,
       });
 
-      if (loginRes?.error) {
-        setServerError("Account created but failed to auto-login.");
-        setSubmitted(true);
-      } else {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setFormError(null);
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setFormError(data?.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+
+      setSubmitted(true);
+
+      // Auto sign-in right after account creation for a smoother flow.
+      const signInResult = await signIn("credentials", {
+        email: form.email,
+        password: form.password,
+        redirect: false,
+      });
+
+      if (signInResult && !signInResult.error) {
         router.push("/dashboard");
         router.refresh();
       }
+    } catch {
+      setFormError("Could not reach the server. Please check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -156,8 +201,18 @@ export default function SignupPage() {
                 {errors.agreeTerms && <p className="text-xs text-red-500 mt-1.5 ml-7">{errors.agreeTerms.message}</p>}
               </div>
 
-              <button type="submit" disabled={isSubmitting} className="w-full h-[46px] mt-2 bg-[#047260] hover:bg-[#035d4f] text-white text-sm font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#047260] focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                {isSubmitting ? "Creating account..." : "Create account"}
+              {formError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">
+                  {formError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full h-[46px] mt-2 bg-[#047260] hover:bg-[#035d4f] text-white text-sm font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#047260] focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Creating account…" : "Create account"}
               </button>
 
               <p className="text-center text-sm text-slate-500 mt-1">

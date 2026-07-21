@@ -1,161 +1,137 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clear existing data
-  await prisma.rebookHistory.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.review.deleteMany();
-  await prisma.booking.deleteMany();
-  await prisma.activity.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.address.deleteMany();
-  await prisma.professional.deleteMany();
-  await prisma.service.deleteMany();
-  await prisma.user.deleteMany();
+  const password = await bcrypt.hash("password123", 10);
 
-  // Create Users
-  const passwordHash = await bcrypt.hash('password123', 10);
-  
-  const user = await prisma.user.create({
-    data: {
-      fullName: 'Sarah Johnson',
-      email: 'customer@urban.co',
-      hashedPassword: passwordHash,
-      phone: '+1 234 567 8900',
-      avatar: 'https://i.pravatar.cc/150?u=sarah',
-      label: 'Customer',
-    }
+  const customer = await prisma.user.upsert({
+    where: { email: "customer@urban.co" },
+    update: {},
+    create: {
+      name: "Asha Kumar",
+      email: "customer@urban.co",
+      phone: "+91 98765 43210",
+      password,
+      role: "CUSTOMER",
+      address: "12 MG Road, Bengaluru",
+    },
   });
 
-  // Create Addresses
-  const address1 = await prisma.address.create({
-    data: {
-      userId: user.id,
-      addressLine: '123 Main St, Apt 4B',
-      city: 'New York',
-      state: 'NY',
-      pincode: '10001',
-      isDefault: true,
-    }
+  const proUser = await prisma.user.upsert({
+    where: { email: "pro@urban.co" },
+    update: {},
+    create: {
+      name: "Ravi Shankar",
+      email: "pro@urban.co",
+      phone: "+91 98765 11111",
+      password,
+      role: "PROFESSIONAL",
+    },
   });
 
-  const address2 = await prisma.address.create({
-    data: {
-      userId: user.id,
-      addressLine: '456 Office Blvd, Floor 12',
-      city: 'New York',
-      state: 'NY',
-      pincode: '10002',
-      isDefault: false,
-    }
+  await prisma.user.upsert({
+    where: { email: "admin@urban.co" },
+    update: {},
+    create: {
+      name: "Urban Admin",
+      email: "admin@urban.co",
+      phone: "+91 98765 22222",
+      password,
+      role: "ADMIN",
+    },
   });
 
-  // Create Professionals
-  const pro1 = await prisma.professional.create({
-    data: {
-      name: 'Michael Chen',
-      avatar: 'https://i.pravatar.cc/150?u=michael',
-      rating: 4.9,
-      jobsCompleted: 342,
-      experience: '5 years',
-      category: 'Cleaning',
-    }
-  });
-
-  const pro2 = await prisma.professional.create({
-    data: {
-      name: 'Emma Wilson',
-      avatar: 'https://i.pravatar.cc/150?u=emma',
+  const professional = await prisma.professional.upsert({
+    where: { userId: proUser.id },
+    update: {},
+    create: {
+      userId: proUser.id,
+      skills: ["AC Repair", "Deep Cleaning", "Plumbing"],
+      active: true,
       rating: 4.8,
-      jobsCompleted: 156,
-      experience: '3 years',
-      category: 'Beauty',
-    }
+    },
   });
 
-  // Create Services
-  const service1 = await prisma.service.create({
-    data: {
-      name: 'Intense Deep Cleaning',
-      description: 'Complete home deep cleaning',
-      startingPrice: 129,
-      icon: 'Sparkles',
-      category: 'Cleaning',
-      color: 'bg-blue-100 text-blue-600',
-    }
+  const service = await prisma.service.upsert({
+    where: { id: "seed-service-ac-repair" },
+    update: {},
+    create: {
+      id: "seed-service-ac-repair",
+      name: "AC Repair & Service",
+      category: "Appliance Repair",
+      price: 499,
+      durationMinutes: 60,
+    },
   });
 
-  const service2 = await prisma.service.create({
-    data: {
-      name: 'AC Servicing & Repair',
-      description: 'Professional AC maintenance',
-      startingPrice: 49,
-      icon: 'Wind',
-      category: 'Repair',
-      color: 'bg-cyan-100 text-cyan-600',
-    }
+  // A completed past booking so the "Rebook" action has something to act on.
+  await prisma.booking.upsert({
+    where: { id: "seed-booking-completed-1" },
+    update: {},
+    create: {
+      id: "seed-booking-completed-1",
+      userId: customer.id,
+      professionalId: professional.id,
+      serviceId: service.id,
+      address: customer.address,
+      slotStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      slotEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+      status: "COMPLETED",
+    },
   });
 
-  // Create Bookings
-  const upcomingBooking = await prisma.booking.create({
-    data: {
-      serviceId: service1.id,
-      professionalId: pro1.id,
-      customerId: user.id,
-      addressId: address1.id,
-      date: 'Tomorrow',
-      time: '10:00 AM',
-      status: 'UPCOMING',
-      price: 129,
-    }
-  });
+  // Generate an hourly calendar grid (9am-6pm UTC) for the professional over
+  // the next 3 days, with one blocked hour per day, so the availability
+  // endpoint and slot picker have real data to work with.
+  for (let day = 0; day < 3; day++) {
+    const base = new Date();
+    base.setUTCHours(0, 0, 0, 0);
+    base.setUTCDate(base.getUTCDate() + day);
 
-  // Create completed bookings
-  for (let i = 0; i < 7; i++) {
-    await prisma.booking.create({
-      data: {
-        serviceId: i % 2 === 0 ? service1.id : service2.id,
-        professionalId: i % 2 === 0 ? pro1.id : pro2.id,
-        customerId: user.id,
-        addressId: address1.id,
-        date: `Oct ${10 + i}, 2023`,
-        time: '2:00 PM',
-        status: 'COMPLETED',
-        price: i % 2 === 0 ? 129 : 49,
-      }
-    });
+    for (let hour = 9; hour < 18; hour++) {
+      const start = new Date(base);
+      start.setUTCHours(hour, 0, 0, 0);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      const isBlocked = hour === 13; // lunch break
+
+      await prisma.calendarSlot.upsert({
+        where: {
+          professionalId_startTime: { professionalId: professional.id, startTime: start },
+        },
+        update: {},
+        create: {
+          professionalId: professional.id,
+          startTime: start,
+          endTime: end,
+          slotType: isBlocked ? "BLOCKED" : "AVAILABLE",
+        },
+      });
+    }
   }
 
-  // Create Activities
-  await prisma.activity.create({
-    data: {
-      userId: user.id,
-      title: 'Booking Completed',
-      description: 'Intense Deep Cleaning was completed',
-      type: 'BOOKING_COMPLETED',
-      professionalName: 'Michael Chen',
-      date: '2 hours ago',
-    }
+  // Seed one rebooking event so /admin/analytics has something to chart
+  // before anyone has clicked "Rebook" for real.
+  await prisma.rebookingEvent.upsert({
+    where: { id: "seed-rebooking-event-1" },
+    update: {},
+    create: {
+      id: "seed-rebooking-event-1",
+      sourceBookingId: "seed-booking-completed-1",
+      outcome: "SUCCESS",
+    },
   });
 
-  // Create Notifications
-  await prisma.notification.create({
-    data: {
-      userId: user.id,
-      title: 'Booking Confirmed',
-      message: 'Your deep cleaning service is confirmed for Tomorrow at 10:00 AM.',
-    }
-  });
-
-  console.log('Database seeded successfully!');
+  console.log("Seed complete. Demo accounts (password: password123):");
+  console.log("  customer@urban.co");
+  console.log("  pro@urban.co");
+  console.log("  admin@urban.co");
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((err) => {
+    console.error(err);
     process.exit(1);
   })
   .finally(async () => {

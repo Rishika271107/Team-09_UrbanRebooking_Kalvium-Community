@@ -7,22 +7,28 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
-    "@prisma/client": "^6.19.3",
+    "@prisma/client": "^5.20.0",
     "@types/bcryptjs": "^2.4.6",
-    "bcryptjs": "^3.0.3",
+    "bcryptjs": "^2.4.3",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.25.0",
     "next": "16.2.10",
-    "next-auth": "^5.0.0-beta.31",
+    "next-auth": "^4.24.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.82.0",
-    "recharts": "^3.10.0",
-    "zod": "^4.4.3"
+    "recharts": "^2.12.7",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -35,9 +41,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "jsdom": "^29.1.1",
-    "prisma": "^6.19.3",
+    "prisma": "^5.20.0",
     "tailwindcss": "^4",
-    "tsx": "^4.23.1",
+    "tsx": "^4.19.1",
     "typescript": "^5",
     "vitest": "^4.1.10"
   },

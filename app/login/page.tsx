@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn, getSession } from "next-auth/react";
 import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,25 +27,13 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [serverError, setServerError] = useState("");
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      rememberMe: false,
-    },
-  });
-
-  const rememberMe = watch("rememberMe");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSubmit = async (data: LoginFormValues) => {
     setServerError("");
@@ -54,14 +44,47 @@ export default function LoginPage() {
         password: data.password,
       });
 
-      if (result?.error) {
-        setServerError("Invalid email or password.");
-      } else {
-        router.push("/dashboard");
-        router.refresh();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setFormError(null);
+
+    const errs: { email?: string; password?: string } = {};
+    if (!email.trim()) errs.email = "Email is required.";
+    else if (!validateEmail(email)) errs.email = "Please enter a valid email.";
+    if (!password) errs.password = "Password is required.";
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    setErrors({});
+    setIsSubmitting(true);
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (!result || result.error) {
+        setFormError("Invalid email or password. Please try again.");
+        return;
       }
-    } catch (error) {
-      setServerError("An unexpected error occurred.");
+
+      const session = await getSession();
+      const destination =
+        session?.user?.role === "PROFESSIONAL"
+          ? "/professional/calendar"
+          : session?.user?.role === "ADMIN"
+          ? "/admin/analytics"
+          : "/dashboard";
+
+      router.push(destination);
+      router.refresh();
+    } catch {
+      setFormError("Something went wrong while signing in. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -247,11 +270,20 @@ export default function LoginPage() {
               </span>
             </label>
 
+            {formError && (
+              <p
+                className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+                role="alert"
+              >
+                {formError}
+              </p>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full text-white font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00897B] disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full text-white font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00897B] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 height: "40px",
                 borderRadius: "10px",
@@ -261,7 +293,7 @@ export default function LoginPage() {
               onMouseEnter={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#00796B"; }}
               onMouseLeave={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#00897B"; }}
             >
-              {isSubmitting ? "Signing in..." : "Sign in"}
+              {isSubmitting ? "Signing in…" : "Sign in"}
             </button>
 
             {/* Signup Redirect */}
@@ -288,7 +320,7 @@ export default function LoginPage() {
             <p className="text-slate-500" style={{ fontSize: "14px", lineHeight: "1.5" }}>
               customer@urban.co • pro@urban.co • admin@urban.co
               <br />
-              (any password)
+              (password: password123, after running the seed script)
             </p>
           </div>
         </div>
