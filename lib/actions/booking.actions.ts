@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { z } from "zod";
 import { processRebook } from "@/services/rebook.service";
 import { getBookingById } from "@/services/booking.service";
+import { logRebookCreated, logUnexpectedError } from "@/lib/logger";
 
 const rebookSchema = z.object({
   originalBookingId: z.string().min(1, "Original booking ID is required"),
@@ -53,9 +54,10 @@ export async function rebookAction(formData: FormData) {
       professionalName: originalBooking.professional.name,
     });
 
+    logRebookCreated(userId, originalBookingId, newBooking.id);
     return { success: true, newBookingId: newBooking.id };
-  } catch (error: any) {
-    console.error("Rebook action error:", error);
+  } catch (error: unknown) {
+    logUnexpectedError("rebookAction", error);
     return { error: "An unexpected error occurred during rebooking." };
   }
 }

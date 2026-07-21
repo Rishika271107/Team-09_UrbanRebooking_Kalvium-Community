@@ -61,3 +61,17 @@ export async function getDashboardStatistics(userId: string) {
     },
   ];
 }
+
+export async function updateUserProfile(userId: string, data: { fullName?: string; email?: string; phone?: string; avatar?: string }) {
+  return await prisma.user.update({
+    where: { id: userId },
+    data,
+  });
+}
+
+export async function updateUserPassword(userId: string, hashedPassword: string) {
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { hashedPassword },
+  });
+}

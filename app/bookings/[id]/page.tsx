@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getBookingById } from "@/services/booking.service";
 import { getUserNotifications } from "@/services/notification.service";
+import { getReviewForBooking } from "@/services/review.service";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, MapPin, CheckCircle2, CreditCard, RotateCw } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, CheckCircle2, CreditCard, RotateCw, Star } from "lucide-react";
+import ReviewSection from "@/components/dashboard/ReviewSection";
 
 export default async function BookingDetailsPage({
   params,
@@ -19,9 +21,10 @@ export default async function BookingDetailsPage({
   const resolvedParams = await params;
   const bookingId = resolvedParams.id;
 
-  const [booking, notifications] = await Promise.all([
+  const [booking, notifications, review] = await Promise.all([
     getBookingById(bookingId),
     getUserNotifications(session.user.id),
+    getReviewForBooking(bookingId),
   ]);
 
   if (!booking || booking.customerId !== session.user.id) {
@@ -130,6 +133,32 @@ export default async function BookingDetailsPage({
             </div>
           </div>
         </div>
+
+        {/* Review Section */}
+        {booking.status === "COMPLETED" && (
+          <div className="lg:col-span-3">
+            {review ? (
+              <div className="rounded-xl border bg-white p-6 shadow-sm flex flex-col gap-4 mt-6">
+                <h3 className="text-lg font-bold text-slate-900 border-b pb-3">Your Review</h3>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={20}
+                      className={star <= review.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}
+                    />
+                  ))}
+                </div>
+                {review.reviewText && (
+                  <p className="text-slate-600 text-sm mt-2">{review.reviewText}</p>
+                )}
+                <p className="text-xs text-slate-400 mt-2">{new Date(review.createdAt).toLocaleDateString()}</p>
+              </div>
+            ) : (
+              <ReviewSection bookingId={booking.id} professionalId={booking.professional.id} />
+            )}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

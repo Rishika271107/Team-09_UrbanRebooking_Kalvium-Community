@@ -11,11 +11,13 @@ import {
   User,
   LogOut,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Booking History", href: "/bookings", icon: History },
   { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { name: "Profile", href: "/dashboard/profile", icon: User },
