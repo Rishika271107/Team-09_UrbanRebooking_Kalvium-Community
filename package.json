@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -20,19 +21,25 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.82.0",
+    "recharts": "^3.10.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "jsdom": "^29.1.1",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
