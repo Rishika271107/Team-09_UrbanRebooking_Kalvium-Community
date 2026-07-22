@@ -31,7 +31,7 @@ export default async function RebookPage({
     redirect("/bookings");
   }
 
-  const unreadNotificationsCount = notifications.filter(n => !n.readStatus).length;
+  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>

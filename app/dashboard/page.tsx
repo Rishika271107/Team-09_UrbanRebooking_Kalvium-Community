@@ -1,20 +1,19 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session) {
     redirect("/login");
   }
-  if (session.user.role === "PROFESSIONAL") {
+  if ((session.user as any)?.role === "PROFESSIONAL") {
     redirect("/professional/calendar");
   }
-  if (session.user.role === "ADMIN") {
+  if ((session.user as any)?.role === "ADMIN") {
     redirect("/admin/analytics");
   }
 
-  return <DashboardClient userName={session.user.name ?? "there"} />;
+  return <DashboardClient userName={session.user?.name ?? "there"} />;
 }

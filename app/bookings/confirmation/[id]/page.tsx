@@ -28,7 +28,7 @@ export default async function BookingConfirmationPage({
     redirect("/dashboard");
   }
 
-  const unreadNotificationsCount = notifications.filter(n => !n.readStatus).length;
+  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>

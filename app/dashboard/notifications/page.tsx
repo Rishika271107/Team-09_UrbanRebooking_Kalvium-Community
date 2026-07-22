@@ -12,7 +12,7 @@ export default async function NotificationsPage() {
 
   const userId = session.user.id;
   const notifications = await getUserNotifications(userId);
-  const unreadNotificationsCount = notifications.filter(n => !n.readStatus).length;
+  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>

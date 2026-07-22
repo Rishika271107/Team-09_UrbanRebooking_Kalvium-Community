@@ -8,8 +8,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 const STATS = [
   { value: "1M+", label: "Happy customers" },
@@ -27,13 +25,25 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+  });
+
+  const rememberMe = watch("rememberMe");
 
   const onSubmit = async (data: LoginFormValues) => {
     setServerError("");
@@ -44,30 +54,8 @@ export default function LoginPage() {
         password: data.password,
       });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const errs: { email?: string; password?: string } = {};
-    if (!email.trim()) errs.email = "Email is required.";
-    else if (!validateEmail(email)) errs.email = "Please enter a valid email.";
-    if (!password) errs.password = "Password is required.";
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
-    }
-    setErrors({});
-    setIsSubmitting(true);
-
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
       if (!result || result.error) {
-        setFormError("Invalid email or password. Please try again.");
+        setServerError("Invalid email or password. Please try again.");
         return;
       }
 
@@ -82,9 +70,7 @@ export default function LoginPage() {
       router.push(destination);
       router.refresh();
     } catch {
-      setFormError("Something went wrong while signing in. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      setServerError("Something went wrong while signing in. Please try again.");
     }
   };
 
@@ -270,14 +256,7 @@ export default function LoginPage() {
               </span>
             </label>
 
-            {formError && (
-              <p
-                className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
-                role="alert"
-              >
-                {formError}
-              </p>
-            )}
+            {/* Use serverError consistently */}
 
             {/* Submit Button */}
             <button

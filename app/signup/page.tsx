@@ -10,8 +10,6 @@ import InputField from "@/components/InputField";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { registerUser } from "@/lib/actions";
 
 const STATS = [
@@ -59,11 +57,7 @@ export default function SignupPage() {
     },
   });
 
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
+  const agreeTerms = watch("agreeTerms");
 
   const onSubmit = async (data: SignupFormValues) => {
     setServerError("");
@@ -78,58 +72,15 @@ export default function SignupPage() {
       setServerError(res.error);
     } else {
       // Auto login
-      const loginRes = await signIn("credentials", {
+      const signInResult = await signIn("credentials", {
         redirect: false,
         email: data.email,
         password: data.password,
       });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setFormError(null);
-    const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: form.fullName,
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setFormError(data?.error ?? "Something went wrong. Please try again.");
-        return;
-      }
-
-      setSubmitted(true);
-
-      // Auto sign-in right after account creation for a smoother flow.
-      const signInResult = await signIn("credentials", {
-        email: form.email,
-        password: form.password,
-        redirect: false,
-      });
-
       if (signInResult && !signInResult.error) {
-        router.push("/dashboard");
-        router.refresh();
+        setSubmitted(true);
       }
-    } catch {
-      setFormError("Could not reach the server. Please check your connection and try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -201,11 +152,7 @@ export default function SignupPage() {
                 {errors.agreeTerms && <p className="text-xs text-red-500 mt-1.5 ml-7">{errors.agreeTerms.message}</p>}
               </div>
 
-              {formError && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">
-                  {formError}
-                </p>
-              )}
+              {/* formError removed, using serverError */}
 
               <button
                 type="submit"

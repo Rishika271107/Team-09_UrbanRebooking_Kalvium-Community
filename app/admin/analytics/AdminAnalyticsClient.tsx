@@ -128,7 +128,7 @@ export default function AdminAnalyticsClient() {
                         cx="50%"
                         cy="50%"
                         outerRadius={90}
-                        label={(entry) => `${entry.outcome}: ${entry.count}`}
+                        label={(entry: any) => `${entry.outcome}: ${entry.count}`}
                       >
                         {data.rebookingOutcomes.map((entry) => (
                           <Cell
@@ -172,7 +172,7 @@ export default function AdminAnalyticsClient() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" domain={[0, 100]} unit="%" allowDecimals={false} />
                     <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(value: number) => `${value}%`} />
+                    <Tooltip formatter={(value: any) => `${value}%`} />
                     <Bar dataKey="utilizationPct" fill="#1AA394" radius={[0, 6, 6, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
