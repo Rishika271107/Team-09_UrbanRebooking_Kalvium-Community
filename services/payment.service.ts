@@ -1,46 +1,38 @@
-import { prisma } from "@/lib/prisma";
+/**
+ * PaymentMethod model does not exist in the current schema.
+ * These functions stub the interface to prevent build errors.
+ */
 
-export async function getUserPaymentMethods(userId: string) {
-  return await prisma.paymentMethod.findMany({
-    where: { userId },
-    orderBy: { isDefault: 'desc' },
-  });
+export type PaymentMethodStub = {
+  id: string;
+  userId: string;
+  type: string;
+  last4?: string;
+  provider?: string;
+  isDefault: boolean;
+};
+
+export async function getUserPaymentMethods(_userId: string): Promise<PaymentMethodStub[]> {
+  return [];
 }
 
-export async function createPaymentMethod(userId: string, data: { type: string; last4?: string; provider?: string; isDefault?: boolean }) {
-  if (data.isDefault) {
-    await prisma.paymentMethod.updateMany({
-      where: { userId },
-      data: { isDefault: false },
-    });
-  }
-
-  const count = await prisma.paymentMethod.count({ where: { userId } });
-  const isDefault = data.isDefault || count === 0;
-
-  return await prisma.paymentMethod.create({
-    data: {
-      userId,
-      ...data,
-      isDefault,
-    },
-  });
+export async function createPaymentMethod(
+  _userId: string,
+  _data: { type: string; last4?: string; provider?: string; isDefault?: boolean }
+): Promise<PaymentMethodStub | null> {
+  return null;
 }
 
-export async function deletePaymentMethod(id: string, userId: string) {
-  return await prisma.paymentMethod.delete({
-    where: { id, userId },
-  });
+export async function deletePaymentMethod(
+  _id: string,
+  _userId: string
+): Promise<PaymentMethodStub | null> {
+  return null;
 }
 
-export async function setDefaultPaymentMethod(id: string, userId: string) {
-  await prisma.paymentMethod.updateMany({
-    where: { userId },
-    data: { isDefault: false },
-  });
-
-  return await prisma.paymentMethod.update({
-    where: { id, userId },
-    data: { isDefault: true },
-  });
+export async function setDefaultPaymentMethod(
+  _id: string,
+  _userId: string
+): Promise<PaymentMethodStub | null> {
+  return null;
 }

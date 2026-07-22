@@ -8,65 +8,36 @@ interface RebookParams {
   addressId: string;
   date: string;
   time: string;
-  price: number;
   paymentMethod: string;
   serviceName: string;
   professionalName: string;
 }
 
 export async function processRebook(params: RebookParams) {
+  // Parse date + time into a slotStart DateTime
+  const slotStart = new Date(`${params.date}T${params.time}:00`);
+
   // Use Prisma transaction to guarantee all inserts succeed or fail together
   return await prisma.$transaction(async (tx) => {
-    // 1. Create the new booking
+    // 1. Create the new booking sourced from the original
     const newBooking = await tx.booking.create({
       data: {
-        customerId: params.userId,
+        userId: params.userId,
         serviceId: params.serviceId,
-        professionalId: params.professionalId,
-        addressId: params.addressId,
-        date: params.date,
-        time: params.time,
-        status: "UPCOMING",
-        price: params.price,
+        professionalId: params.professionalId || undefined,
+        address: params.addressId, // stored as a string address
+        slotStart,
+        status: "PENDING",
+        sourceBookingId: params.originalBookingId,
       },
     });
 
-    // 2. Create RebookHistory
-    await tx.rebookHistory.create({
+    // 2. Record the rebooking event for analytics / traceability (FR9)
+    await tx.rebookingEvent.create({
       data: {
-        originalBookingId: params.originalBookingId,
+        sourceBookingId: params.originalBookingId,
         newBookingId: newBooking.id,
-      },
-    });
-
-    // 3. Create mock Payment
-    await tx.payment.create({
-      data: {
-        bookingId: newBooking.id,
-        amount: params.price,
-        paymentMethod: params.paymentMethod,
-        status: "SUCCESS",
-      },
-    });
-
-    // 4. Create Activity
-    await tx.activity.create({
-      data: {
-        userId: params.userId,
-        title: `Rebooked ${params.serviceName}`,
-        type: "REBOOK",
-        professionalName: params.professionalName,
-        date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-      },
-    });
-
-    // 5. Create Notification
-    await tx.notification.create({
-      data: {
-        userId: params.userId,
-        title: "Booking Confirmed",
-        message: `Your rebooking for ${params.serviceName} with ${params.professionalName} on ${params.date} at ${params.time} is confirmed.`,
-        readStatus: false,
+        outcome: "SUCCESS",
       },
     });
 

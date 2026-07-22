@@ -27,7 +27,7 @@ export default async function BookingDetailsPage({
     getReviewForBooking(bookingId),
   ]);
 
-  if (!booking || booking.customerId !== session.user.id) {
+  if (!booking || booking.userId !== session.user.id) {
     redirect("/bookings");
   }
 
@@ -56,17 +56,15 @@ export default async function BookingDetailsPage({
           <div className="flex flex-col gap-6 lg:col-span-2">
             <div className="rounded-xl border bg-white p-6 shadow-sm flex flex-col gap-6">
               <div className="flex items-center gap-4 border-b pb-6">
-                <img
-                  src={booking.professional.avatar}
-                  alt={booking.professional.name}
-                  className="h-20 w-20 rounded-full border-2 border-slate-100 object-cover"
-                />
+                <div className="h-20 w-20 rounded-full border-2 border-slate-100 bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-2xl">
+                  {booking.professional?.user?.name?.charAt(0) ?? "P"}
+                </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xl font-bold text-slate-900">{booking.service.name}</span>
-                  <span className="text-slate-600 font-medium">Professional: {booking.professional.name}</span>
+                  <span className="text-slate-600 font-medium">Professional: {booking.professional?.user?.name ?? "Professional"}</span>
                   <span className={`mt-1 inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                     booking.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' :
-                    booking.status === 'UPCOMING' ? 'bg-blue-50 text-blue-700' :
+                    booking.status === 'CONFIRMED' ? 'bg-blue-50 text-blue-700' :
                     'bg-slate-100 text-slate-700'
                   }`}>
                     {booking.status}
@@ -79,7 +77,7 @@ export default async function BookingDetailsPage({
                   <div className="mt-0.5 text-teal-600"><Calendar size={20} /></div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm text-slate-500 font-medium">Date</span>
-                    <span className="font-semibold text-slate-900">{booking.date}</span>
+                    <span className="font-semibold text-slate-900">{booking.slotStart ? new Date(booking.slotStart).toLocaleDateString() : "TBD"}</span>
                   </div>
                 </div>
 
@@ -87,7 +85,7 @@ export default async function BookingDetailsPage({
                   <div className="mt-0.5 text-teal-600"><Clock size={20} /></div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm text-slate-500 font-medium">Time</span>
-                    <span className="font-semibold text-slate-900">{booking.time}</span>
+                    <span className="font-semibold text-slate-900">{booking.slotStart ? new Date(booking.slotStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "TBD"}</span>
                   </div>
                 </div>
 
@@ -95,8 +93,7 @@ export default async function BookingDetailsPage({
                   <div className="mt-0.5 text-teal-600"><MapPin size={20} /></div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm text-slate-500 font-medium">Service Address</span>
-                    <span className="font-semibold text-slate-900">{booking.address.addressLine}</span>
-                    <span className="text-sm text-slate-600">{booking.address.city}, {booking.address.state} {booking.address.pincode}</span>
+                    <span className="font-semibold text-slate-900">{booking.address ?? "Address on file"}</span>
                   </div>
                 </div>
               </div>
@@ -110,26 +107,14 @@ export default async function BookingDetailsPage({
               
               <div className="flex items-center justify-between">
                 <span className="text-slate-600">Service Fee</span>
-                <span className="font-medium text-slate-900">${booking.price}</span>
+                <span className="font-medium text-slate-900">${booking.service.price}</span>
               </div>
               
               <div className="flex items-center justify-between border-t pt-4 mt-2">
-                <span className="font-bold text-slate-900">Total Paid</span>
-                <span className="font-bold text-teal-700 text-xl">${booking.price}</span>
+                <span className="font-bold text-slate-900">Total</span>
+                <span className="font-bold text-teal-700 text-xl">${booking.service.price}</span>
               </div>
 
-              {booking.payment && (
-                <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 p-3 border">
-                  <div className="flex items-center gap-2">
-                    <CreditCard size={18} className="text-slate-500" />
-                    <span className="text-sm font-medium text-slate-700">{booking.payment.paymentMethod}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle2 size={16} className="text-emerald-500" />
-                    <span className="text-xs font-semibold text-emerald-700">PAID</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -155,7 +140,7 @@ export default async function BookingDetailsPage({
                 <p className="text-xs text-slate-400 mt-2">{new Date(review.createdAt).toLocaleDateString()}</p>
               </div>
             ) : (
-              <ReviewSection bookingId={booking.id} professionalId={booking.professional.id} />
+              <ReviewSection bookingId={booking.id} professionalId={booking.professional?.id ?? ""} />
             )}
           </div>
         )}

@@ -76,6 +76,36 @@ After sign-in, users land on different pages based on `role`:
 `/admin/analytics` gets redirected to `/dashboard`, etc.), on top of every API
 route checking `session.user.role` itself.
 
+## Auth/authorization fixes applied
+
+A security review turned up 7 issues in the auth/authorization/Postgres layer.
+All are fixed as of this version:
+
+1. **Signup race condition** — `POST /api/auth/register` now catches Prisma's
+   `P2002` unique-constraint error and returns a proper 409 instead of a
+   generic 500 if two concurrent signups race for the same email.
+2. **Confirm endpoint trusted client input** — `POST /api/bookings/confirm`
+   now rejects the request (403) if the submitted `professionalId` doesn't
+   match the professional actually assigned to the draft booking, instead of
+   letting the client confirm against any active professional.
+3. **TOCTOU on professional.active** — that check now happens inside the same
+   `$transaction` as the slot update, not before it.
+4. **Prisma transaction timeouts (P2028)** — now mapped to a `409 "try
+   again"` instead of a misleading `500`.
+5. **No rate limiting** — `middleware.ts` now rate-limits
+   `/api/auth/callback/credentials` (login) and `/api/auth/register` to 10
+   requests/minute per IP (`lib/rate-limit.ts`). This is in-memory and
+   single-instance only — see the comment in that file for the production
+   caveat (use Upstash Redis or similar on multi-instance deployments).
+6. **Availability endpoint access scope** — left intentionally open to any
+   authenticated user (documented in the route file); not changed because
+   the customer rebooking flow depends on it and there's no real exploit
+   path today (unguessable ids, no professional-browsing feature yet).
+7. **Missing env var validation** — `lib/prisma.ts` now throws a clear error
+   at import time if `DATABASE_URL` is unset; `lib/auth.ts` throws in
+   production (warns in development) if `NEXTAUTH_SECRET` is unset, instead
+   of failing with an unclear NextAuth error later.
+
 ## What I didn't build
 
 - A note on `AGENTS.md`: it instructs reading `node_modules/next/dist/docs/`

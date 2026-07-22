@@ -49,7 +49,7 @@ export default async function BookingHistoryPage({
               </Link>
             </div>
           ) : (
-            bookings.map((booking) => (
+            bookings.map((booking: any) => (
               <Link 
                 href={`/bookings/${booking.id}`} 
                 key={booking.id}
@@ -66,7 +66,7 @@ export default async function BookingHistoryPage({
                       <span className="font-bold text-slate-900 text-lg">{booking.service.name}</span>
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         booking.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' :
-                        booking.status === 'UPCOMING' ? 'bg-blue-50 text-blue-700' :
+                        booking.status === 'CONFIRMED' ? 'bg-blue-50 text-blue-700' :
                         'bg-slate-100 text-slate-700'
                       }`}>
                         {booking.status}

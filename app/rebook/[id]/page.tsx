@@ -27,7 +27,7 @@ export default async function RebookPage({
     getUserNotifications(session.user.id),
   ]);
 
-  if (!booking || booking.customerId !== session.user.id) {
+  if (!booking || booking.userId !== session.user.id) {
     redirect("/bookings");
   }
 
@@ -43,7 +43,7 @@ export default async function RebookPage({
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-bold text-slate-900">One-Click Rebook</h1>
             <p className="text-slate-500">
-              Rebooking <strong>{booking.service.name}</strong> with <strong>{booking.professional.name}</strong>.
+              Rebooking <strong>{booking.service.name}</strong> with <strong>{booking.professional?.user?.name ?? "Professional"}</strong>.
             </p>
           </div>
         </div>
@@ -53,7 +53,7 @@ export default async function RebookPage({
             originalBookingId={booking.id}
             addresses={addresses}
             serviceName={booking.service.name}
-            professionalName={booking.professional.name}
+            professionalName={booking.professional?.user?.name ?? "Professional"}
           />
         </div>
       </div>

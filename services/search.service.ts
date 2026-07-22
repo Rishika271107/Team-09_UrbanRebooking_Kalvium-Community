@@ -12,7 +12,6 @@ export async function globalSearch(query: string, userId?: string) {
       OR: [
         { name: { contains: searchTerm } },
         { category: { contains: searchTerm } },
-        { description: { contains: searchTerm } },
       ],
     },
     take: 5,
@@ -21,9 +20,12 @@ export async function globalSearch(query: string, userId?: string) {
   const professionals = await prisma.professional.findMany({
     where: {
       OR: [
-        { name: { contains: searchTerm } },
-        { category: { contains: searchTerm } },
+        { user: { name: { contains: searchTerm } } },
+        { skills: { contains: searchTerm } },
       ],
+    },
+    include: {
+      user: true,
     },
     take: 5,
   });
@@ -32,16 +34,19 @@ export async function globalSearch(query: string, userId?: string) {
   if (userId) {
     bookings = await prisma.booking.findMany({
       where: {
-        customerId: userId,
+        userId: userId,
         OR: [
           { service: { name: { contains: searchTerm } } },
-          { professional: { name: { contains: searchTerm } } },
-          { status: { contains: searchTerm } },
+          { professional: { user: { name: { contains: searchTerm } } } },
         ],
       },
       include: {
         service: true,
-        professional: true,
+        professional: {
+          include: {
+            user: true,
+          }
+        },
       },
       take: 5,
     });

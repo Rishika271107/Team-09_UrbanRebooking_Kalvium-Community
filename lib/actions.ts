@@ -30,11 +30,10 @@ export async function registerUser(formData: z.infer<typeof signupSchema>) {
     await prisma.user.create({
       data: {
         email,
-        fullName,
+        name: fullName,
         phone,
-        hashedPassword: passwordHash,
-        avatar: "https://i.pravatar.cc/150?img=5", // Random mock avatar
-        label: "Customer",
+        password: passwordHash,
+        role: "CUSTOMER",
       }
     });
 
