@@ -24,11 +24,11 @@ export default async function BookingConfirmationPage({
     getUserNotifications(session.user.id),
   ]);
 
-  if (!booking || booking.customerId !== session.user.id) {
+  if (!booking || booking.userId !== session.user.id) {
     redirect("/dashboard");
   }
 
-  const unreadNotificationsCount = notifications.filter(n => !n.readStatus).length;
+  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>
@@ -46,14 +46,12 @@ export default async function BookingConfirmationPage({
         <div className="w-full max-w-xl rounded-2xl border bg-white p-8 shadow-sm">
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-4 border-b pb-6">
-              <img
-                src={booking.professional.avatar}
-                alt={booking.professional.name}
-                className="h-16 w-16 rounded-full border-2 border-slate-100 object-cover"
-              />
+              <div className="h-16 w-16 rounded-full border-2 border-slate-100 bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-xl">
+                {booking.professional?.user?.name?.charAt(0) ?? "P"}
+              </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-slate-900">{booking.service.name}</span>
-                <span className="text-slate-600 font-medium">with {booking.professional.name}</span>
+                <span className="text-slate-600 font-medium">with {booking.professional?.user?.name ?? "Professional"}</span>
               </div>
             </div>
 
@@ -62,7 +60,7 @@ export default async function BookingConfirmationPage({
                 <div className="mt-0.5 text-slate-400"><Calendar size={20} /></div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Date</span>
-                  <span className="font-medium text-slate-900">{booking.date}</span>
+                  <span className="font-medium text-slate-900">{booking.slotStart ? new Date(booking.slotStart).toLocaleDateString() : "TBD"}</span>
                 </div>
               </div>
 
@@ -70,7 +68,7 @@ export default async function BookingConfirmationPage({
                 <div className="mt-0.5 text-slate-400"><Clock size={20} /></div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Time</span>
-                  <span className="font-medium text-slate-900">{booking.time}</span>
+                  <span className="font-medium text-slate-900">{booking.slotStart ? new Date(booking.slotStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "TBD"}</span>
                 </div>
               </div>
 
@@ -78,7 +76,7 @@ export default async function BookingConfirmationPage({
                 <div className="mt-0.5 text-slate-400"><MapPin size={20} /></div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Address</span>
-                  <span className="font-medium text-slate-900">{booking.address.addressLine}, {booking.address.city}</span>
+                  <span className="font-medium text-slate-900">{booking.address ?? "Address on file"}</span>
                 </div>
               </div>
 

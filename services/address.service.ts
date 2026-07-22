@@ -1,60 +1,63 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getUserAddresses(userId: string) {
-  return await prisma.address.findMany({
-    where: { userId },
-    orderBy: { isDefault: 'desc' },
-  });
-}
+/**
+ * Address model does not exist in the current schema.
+ * The User model has a single `address: String?` field.
+ * These functions stub the multi-address interface to prevent build errors.
+ */
 
-export async function createAddress(userId: string, data: { addressLine: string; city: string; state: string; pincode: string; isDefault?: boolean }) {
-  if (data.isDefault) {
-    await prisma.address.updateMany({
-      where: { userId },
-      data: { isDefault: false },
-    });
-  }
+export type AddressStub = {
+  id: string;
+  userId: string;
+  addressLine: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+};
 
-  const count = await prisma.address.count({ where: { userId } });
-  const isDefault = data.isDefault || count === 0;
-
-  return await prisma.address.create({
-    data: {
+export async function getUserAddresses(userId: string): Promise<AddressStub[]> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user?.address) return [];
+  return [
+    {
+      id: "primary",
       userId,
-      ...data,
-      isDefault,
+      addressLine: user.address,
+      city: "",
+      state: "",
+      pincode: "",
+      isDefault: true,
     },
-  });
+  ];
 }
 
-export async function updateAddress(id: string, userId: string, data: { addressLine: string; city: string; state: string; pincode: string; isDefault?: boolean }) {
-  if (data.isDefault) {
-    await prisma.address.updateMany({
-      where: { userId },
-      data: { isDefault: false },
-    });
-  }
-
-  return await prisma.address.update({
-    where: { id, userId }, // Ensure user owns the address
-    data,
-  });
+export async function createAddress(
+  userId: string,
+  data: { addressLine: string; city: string; state: string; pincode: string; isDefault?: boolean }
+): Promise<AddressStub> {
+  const fullAddress = `${data.addressLine}, ${data.city}, ${data.state} - ${data.pincode}`;
+  await prisma.user.update({ where: { id: userId }, data: { address: fullAddress } });
+  return { id: "primary", userId, ...data, isDefault: true };
 }
 
-export async function deleteAddress(id: string, userId: string) {
-  return await prisma.address.delete({
-    where: { id, userId },
-  });
+export async function updateAddress(
+  _id: string,
+  userId: string,
+  data: { addressLine: string; city: string; state: string; pincode: string; isDefault?: boolean }
+): Promise<AddressStub> {
+  const fullAddress = `${data.addressLine}, ${data.city}, ${data.state} - ${data.pincode}`;
+  await prisma.user.update({ where: { id: userId }, data: { address: fullAddress } });
+  return { id: "primary", userId, ...data, isDefault: true };
 }
 
-export async function setDefaultAddress(id: string, userId: string) {
-  await prisma.address.updateMany({
-    where: { userId },
-    data: { isDefault: false },
-  });
+export async function deleteAddress(_id: string, userId: string): Promise<AddressStub | null> {
+  await prisma.user.update({ where: { id: userId }, data: { address: null } });
+  return null;
+}
 
-  return await prisma.address.update({
-    where: { id, userId },
-    data: { isDefault: true },
-  });
+export async function setDefaultAddress(_id: string, userId: string): Promise<AddressStub | null> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user?.address) return null;
+  return { id: "primary", userId, addressLine: user.address, city: "", state: "", pincode: "", isDefault: true };
 }

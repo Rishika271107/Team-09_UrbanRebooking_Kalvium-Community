@@ -1,6 +1,6 @@
-import { getServerSession, type Session } from "next-auth";
+import { type Session } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/auth";
 
 /**
  * Resolves the current server-side session for use inside API route handlers.
@@ -13,7 +13,7 @@ import { authOptions } from "@/lib/auth";
 export async function requireSession(): Promise<
   { session: Session; error: null } | { session: null; error: NextResponse }
 > {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     return {

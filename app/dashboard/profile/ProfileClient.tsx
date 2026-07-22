@@ -190,23 +190,19 @@ export default function ProfileClient({ user, paymentMethods }: { user: any, pay
           <div>
             <h2 className="text-xl font-semibold mb-6">Saved Addresses</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {user.addresses.map((address: any) => (
-                <div key={address.id} className={`p-4 border rounded-xl ${address.isDefault ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200'}`}>
+              {user.address ? (
+                <div className="p-4 border border-teal-500 bg-teal-50/30 rounded-xl">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      <MapPin size={16} className={address.isDefault ? "text-teal-600" : "text-slate-400"} />
-                      <span className="font-medium text-slate-900">{address.isDefault ? "Default Address" : "Address"}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      {!address.isDefault && (
-                        <button onClick={() => setDefaultAddressAction(address.id)} className="text-xs text-teal-600 font-medium">Set Default</button>
-                      )}
-                      <button onClick={() => deleteAddressAction(address.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={16} /></button>
+                      <MapPin size={16} className="text-teal-600" />
+                      <span className="font-medium text-slate-900">Default Address</span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-600 mt-2">{address.addressLine}, {address.city}, {address.state} {address.pincode}</p>
+                  <p className="text-sm text-slate-600 mt-2">{user.address}</p>
                 </div>
-              ))}
+              ) : (
+                <p className="text-sm text-slate-500 col-span-2">No saved address yet.</p>
+              )}
             </div>
 
             <h3 className="text-lg font-semibold mb-4">Add New Address</h3>

@@ -48,7 +48,7 @@ async function main() {
     update: {},
     create: {
       userId: proUser.id,
-      skills: ["AC Repair", "Deep Cleaning", "Plumbing"],
+      skills: "AC Repair, Deep Cleaning, Plumbing",
       active: true,
       rating: 4.8,
     },

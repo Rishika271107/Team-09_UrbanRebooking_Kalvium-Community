@@ -36,7 +36,7 @@ export async function rebookAction(formData: FormData) {
       return { error: "Original booking not found" };
     }
 
-    if (originalBooking.customerId !== userId) {
+    if (originalBooking.userId !== userId) {
       return { error: "Unauthorized access to this booking" };
     }
 
@@ -44,14 +44,13 @@ export async function rebookAction(formData: FormData) {
       userId,
       originalBookingId,
       serviceId: originalBooking.serviceId,
-      professionalId: originalBooking.professionalId,
+      professionalId: originalBooking.professionalId || "",
       addressId,
       date,
       time,
-      price: originalBooking.price,
       paymentMethod,
       serviceName: originalBooking.service.name,
-      professionalName: originalBooking.professional.name,
+      professionalName: originalBooking.professional?.user?.name ?? "Professional",
     });
 
     logRebookCreated(userId, originalBookingId, newBooking.id);

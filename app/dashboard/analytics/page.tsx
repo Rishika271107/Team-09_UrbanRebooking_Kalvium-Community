@@ -21,7 +21,7 @@ export default async function AnalyticsPage() {
     getUserNotifications(session.user.id),
   ]);
 
-  const unreadNotificationsCount = notifications.filter(n => !n.readStatus).length;
+  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>

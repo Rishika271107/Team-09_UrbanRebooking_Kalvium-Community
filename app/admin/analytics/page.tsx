@@ -1,15 +1,14 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import AdminAnalyticsClient from "./AdminAnalyticsClient";
 
 export default async function AdminAnalyticsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session) {
     redirect("/login");
   }
-  if (session.user.role !== "ADMIN") {
+  if ((session.user as any)?.role !== "ADMIN") {
     redirect("/dashboard");
   }
 
