@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getDashboardAnalytics } from "@/services/analytics.service";
 import { getUserNotifications } from "@/services/notification.service";
 import AnalyticsCharts from "./AnalyticsCharts";
+import { formatCurrency } from "@/lib/format";
 
 export const metadata = {
   title: "Analytics | Urban Company",
@@ -39,7 +40,7 @@ export default async function AnalyticsPage() {
           </div>
           <div className="bg-white p-6 rounded-xl border shadow-sm">
             <h3 className="text-sm font-medium text-slate-500">Total Spent</h3>
-            <p className="text-3xl font-bold text-slate-900 mt-2">${analytics.summary.totalSpent.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-slate-900 mt-2">{formatCurrency(analytics.summary.totalSpent)}</p>
           </div>
           <div className="bg-white p-6 rounded-xl border shadow-sm">
             <h3 className="text-sm font-medium text-slate-500">Rebooking Rate</h3>

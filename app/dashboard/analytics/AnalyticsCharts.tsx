@@ -4,6 +4,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
 } from 'recharts';
+import { formatCurrency } from '@/lib/format';
 
 export default function AnalyticsCharts({ data }: { data: any }) {
   // If no data, show empty state
@@ -44,7 +45,7 @@ export default function AnalyticsCharts({ data }: { data: any }) {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-              <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} formatter={(val: any) => [`$${val}`, 'Spending']} />
+              <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} formatter={(val: any) => [formatCurrency(val), 'Spending']} />
               <Area type="monotone" dataKey="spending" stroke="#0ea5e9" fill="#e0f2fe" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
