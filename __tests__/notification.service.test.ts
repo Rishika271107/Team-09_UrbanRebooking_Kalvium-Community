@@ -12,69 +12,55 @@ vi.mock('../lib/prisma', () => ({
   prisma: {
     notification: {
       findMany: vi.fn(),
-      update: vi.fn(),
       updateMany: vi.fn(),
-      delete: vi.fn(),
       deleteMany: vi.fn(),
-      create: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }));
 
-const mockNotification = {
-  id: 'notif-1',
-  userId: 'user-1',
-  title: 'Booking Confirmed',
-  message: 'Your booking is confirmed.',
-  readStatus: false,
-  createdAt: new Date(),
-};
-
 describe('Notification Service', () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
 
-  it('getUserNotifications: returns user notifications ordered by date', async () => {
-    (prisma.notification.findMany as any).mockResolvedValue([mockNotification]);
-    const result = await getUserNotifications('user-1');
-    expect(result).toHaveLength(1);
+  it('getUserNotifications orders by createdAt desc', async () => {
+    (prisma.notification.findMany as any).mockResolvedValue([]);
+    await getUserNotifications('u1');
     expect(prisma.notification.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: 'user-1' } })
+      expect.objectContaining({ where: { userId: 'u1' }, orderBy: { createdAt: 'desc' } })
     );
   });
 
-  it('markNotificationAsRead: updates readStatus to true', async () => {
-    (prisma.notification.update as any).mockResolvedValue({ ...mockNotification, readStatus: true });
-    const result = await markNotificationAsRead('notif-1', 'user-1');
-    expect(result.readStatus).toBe(true);
-    expect(prisma.notification.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'notif-1', userId: 'user-1' },
-        data: { readStatus: true },
-      })
-    );
+  it('markNotificationAsRead throws when the notification does not belong to the user', async () => {
+    (prisma.notification.updateMany as any).mockResolvedValue({ count: 0 });
+    await expect(markNotificationAsRead('n1', 'u1')).rejects.toThrow('Notification not found.');
   });
 
-  it('markAllNotificationsAsRead: calls updateMany for user', async () => {
+  it('markNotificationAsRead updates when ownership matches', async () => {
+    (prisma.notification.updateMany as any).mockResolvedValue({ count: 1 });
+    (prisma.notification.findUnique as any).mockResolvedValue({ id: 'n1', readStatus: true });
+    const result = await markNotificationAsRead('n1', 'u1');
+    expect(result).toEqual({ id: 'n1', readStatus: true });
+  });
+
+  it('markAllNotificationsAsRead scopes to unread notifications for the user', async () => {
     (prisma.notification.updateMany as any).mockResolvedValue({ count: 3 });
-    await markAllNotificationsAsRead('user-1');
-    expect(prisma.notification.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: 'user-1', readStatus: false } })
-    );
+    await markAllNotificationsAsRead('u1');
+    expect(prisma.notification.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'u1', readStatus: false },
+      data: { readStatus: true },
+    });
   });
 
-  it('deleteNotification: deletes single notification by id and userId', async () => {
-    (prisma.notification.delete as any).mockResolvedValue(mockNotification);
-    await deleteNotification('notif-1', 'user-1');
-    expect(prisma.notification.delete).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'notif-1', userId: 'user-1' } })
-    );
+  it('deleteNotification throws when not owned by the user', async () => {
+    (prisma.notification.deleteMany as any).mockResolvedValue({ count: 0 });
+    await expect(deleteNotification('n1', 'u1')).rejects.toThrow('Notification not found.');
   });
 
-  it('clearAllNotifications: deletes all notifications for user', async () => {
+  it('clearAllNotifications deletes every notification for the user', async () => {
     (prisma.notification.deleteMany as any).mockResolvedValue({ count: 5 });
-    await clearAllNotifications('user-1');
-    expect(prisma.notification.deleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: 'user-1' } })
-    );
+    await clearAllNotifications('u1');
+    expect(prisma.notification.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
   });
 });

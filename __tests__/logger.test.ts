@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { logAuthSignIn, logAuthSignUp, logAuthFailure, logRebookCreated, logReviewSubmitted, logDbError, logUnexpectedError } from '../lib/logger';
 
 describe('Logger', () => {
