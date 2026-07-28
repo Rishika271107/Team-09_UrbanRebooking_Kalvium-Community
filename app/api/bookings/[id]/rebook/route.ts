@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   _req: NextRequest,
@@ -8,6 +9,17 @@ export async function POST(
 ) {
   const { session, error } = await requireSession();
   if (error) return error;
+
+  const rateLimit = checkRateLimit(`bookings:rebook:${session.user.id}`, {
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many rebooking attempts. Please try again in a minute." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
 
   const { id } = await context.params;
   if (!id) {
