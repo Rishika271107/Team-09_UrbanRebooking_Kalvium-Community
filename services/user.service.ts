@@ -1,77 +1,48 @@
 import { prisma } from "@/lib/prisma";
 
 export async function getUserById(id: string) {
-  return await prisma.user.findUnique({
+  return prisma.user.findUnique({
     where: { id },
+    include: { addresses: true },
   });
 }
 
 export async function getUserByEmail(email: string) {
-  return await prisma.user.findUnique({
-    where: { email },
-  });
+  return prisma.user.findUnique({ where: { email } });
 }
 
 export async function getDashboardStatistics(userId: string) {
-  const totalBookings = await prisma.booking.count({
-    where: { userId },
-  });
-
-  const upcomingBookings = await prisma.booking.count({
-    where: { userId, status: "CONFIRMED" },
-  });
-
-  const rebookedServices = await prisma.rebookingEvent.count({
-    where: {
-      sourceBooking: { userId },
-      outcome: "SUCCESS",
-    },
-  });
+  const [totalBookings, upcomingBookings, rebookedServices, savedAddresses] = await Promise.all([
+    prisma.booking.count({ where: { userId } }),
+    prisma.booking.count({ where: { userId, status: "CONFIRMED" } }),
+    prisma.booking.count({ where: { userId, sourceBookingId: { not: null } } }),
+    prisma.address.count({ where: { userId } }),
+  ]);
 
   return [
-    {
-      id: "s1",
-      title: "Total Bookings",
-      value: totalBookings,
-      description: "Lifetime bookings",
-      icon: "CalendarCheck",
-    },
-    {
-      id: "s2",
-      title: "Upcoming Services",
-      value: upcomingBookings,
-      description: "Scheduled bookings",
-      icon: "Clock",
-    },
-    {
-      id: "s3",
-      title: "Rebooked Services",
-      value: rebookedServices,
-      description: "Favorites rebooked",
-      icon: "Settings",
-    },
-    {
-      id: "s4",
-      title: "Saved Address",
-      value: 1,
-      description: "Your location",
-      icon: "MapPin",
-    },
+    { id: "s1", title: "Total Bookings", value: totalBookings, description: "Lifetime bookings", icon: "CalendarCheck" },
+    { id: "s2", title: "Upcoming Services", value: upcomingBookings, description: "Scheduled bookings", icon: "Clock" },
+    { id: "s3", title: "Rebooked Services", value: rebookedServices, description: "Favorites rebooked", icon: "Settings" },
+    { id: "s4", title: "Saved Addresses", value: savedAddresses, description: "Your locations", icon: "MapPin" },
   ];
 }
 
 export async function updateUserProfile(
   userId: string,
-  data: { name?: string; email?: string; phone?: string; address?: string }
+  data: { fullName?: string; email?: string; phone?: string }
 ) {
-  return await prisma.user.update({
+  return prisma.user.update({
     where: { id: userId },
-    data,
+    data: {
+      name: data.fullName,
+      email: data.email,
+      phone: data.phone,
+    },
   });
 }
 
 export async function updateUserPassword(userId: string, hashedPassword: string) {
-  return await prisma.user.update({
+  return prisma.user.update({
     where: { id: userId },
     data: { password: hashedPassword },
   });
