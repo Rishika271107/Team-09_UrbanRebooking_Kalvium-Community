@@ -1,16 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { updateUserProfile, updateUserPassword } from "@/services/user.service";
 import bcrypt from "bcryptjs";
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { updateUserProfile, updateUserPassword } from "@/services/user.service";
+
+async function requireUserId() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  return session.user.id;
+}
 
 export async function updateProfile(data: { fullName: string; email: string; phone: string }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await updateUserProfile(session.user.id, data);
+    const userId = await requireUserId();
+    await updateUserProfile(userId, data);
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
@@ -20,11 +25,9 @@ export async function updateProfile(data: { fullName: string; email: string; pho
 
 export async function updatePassword(password: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
+    const userId = await requireUserId();
     const hashedPassword = await bcrypt.hash(password, 10);
-    await updateUserPassword(session.user.id, hashedPassword);
+    await updateUserPassword(userId, hashedPassword);
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
