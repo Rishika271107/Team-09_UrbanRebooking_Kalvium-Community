@@ -48,7 +48,7 @@ export default function NotificationsClient({ initialNotifications }: { initialN
     );
   }
 
-  const unreadCount = notifications.filter((n: any) => !n.readStatus).length;
+  const unreadCount = notifications.filter(n => !n.readStatus).length;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">

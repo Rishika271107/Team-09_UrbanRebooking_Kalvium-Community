@@ -1,5 +1,6 @@
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getDashboardAnalytics } from "@/services/analytics.service";
 import { getUserNotifications } from "@/services/notification.service";
@@ -11,7 +12,7 @@ export const metadata = {
 };
 
 export default async function AnalyticsPage() {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/login");
   }
@@ -21,7 +22,7 @@ export default async function AnalyticsPage() {
     getUserNotifications(session.user.id),
   ]);
 
-  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
+  const unreadNotificationsCount = notifications.filter(n => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>

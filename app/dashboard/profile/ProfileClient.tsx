@@ -4,10 +4,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { User, MapPin, CreditCard, Lock, Plus, Trash2, Check, X } from "lucide-react";
+import { User, MapPin, Lock, Plus, Trash2, X } from "lucide-react";
 import { updateProfile, updatePassword } from "@/app/actions/profile.actions";
 import { addAddressAction, deleteAddressAction, setDefaultAddressAction } from "@/app/actions/address.actions";
-import { addPaymentMethodAction, deletePaymentMethodAction, setDefaultPaymentMethodAction } from "@/app/actions/payment.actions";
 
 const profileSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
@@ -31,7 +30,7 @@ const addressSchema = z.object({
   pincode: z.string().min(5, "Valid pincode is required"),
 });
 
-export default function ProfileClient({ user, paymentMethods }: { user: any, paymentMethods: any[] }) {
+export default function ProfileClient({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState("profile");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -39,7 +38,7 @@ export default function ProfileClient({ user, paymentMethods }: { user: any, pay
   const profileForm = useForm({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName: user.fullName || "",
+      fullName: user.name || "",
       email: user.email || "",
       phone: user.phone || "",
     },
@@ -97,7 +96,6 @@ export default function ProfileClient({ user, paymentMethods }: { user: any, pay
     { id: "profile", label: "Profile Info", icon: User },
     { id: "security", label: "Security", icon: Lock },
     { id: "addresses", label: "Addresses", icon: MapPin },
-    { id: "payments", label: "Payment Methods", icon: CreditCard },
   ];
 
   return (
@@ -190,19 +188,23 @@ export default function ProfileClient({ user, paymentMethods }: { user: any, pay
           <div>
             <h2 className="text-xl font-semibold mb-6">Saved Addresses</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {user.address ? (
-                <div className="p-4 border border-teal-500 bg-teal-50/30 rounded-xl">
+              {user.addresses.map((address: any) => (
+                <div key={address.id} className={`p-4 border rounded-xl ${address.isDefault ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      <MapPin size={16} className="text-teal-600" />
-                      <span className="font-medium text-slate-900">Default Address</span>
+                      <MapPin size={16} className={address.isDefault ? "text-teal-600" : "text-slate-400"} />
+                      <span className="font-medium text-slate-900">{address.isDefault ? "Default Address" : "Address"}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {!address.isDefault && (
+                        <button onClick={() => setDefaultAddressAction(address.id)} className="text-xs text-teal-600 font-medium">Set Default</button>
+                      )}
+                      <button onClick={() => deleteAddressAction(address.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={16} /></button>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-600 mt-2">{user.address}</p>
+                  <p className="text-sm text-slate-600 mt-2">{address.addressLine}, {address.city}, {address.state} {address.pincode}</p>
                 </div>
-              ) : (
-                <p className="text-sm text-slate-500 col-span-2">No saved address yet.</p>
-              )}
+              ))}
             </div>
 
             <h3 className="text-lg font-semibold mb-4">Add New Address</h3>
@@ -232,53 +234,6 @@ export default function ProfileClient({ user, paymentMethods }: { user: any, pay
           </div>
         )}
 
-        {activeTab === "payments" && (
-          <div>
-            <h2 className="text-xl font-semibold mb-6">Payment Methods</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {paymentMethods.map((pm: any) => (
-                <div key={pm.id} className={`p-4 border rounded-xl flex justify-between items-center ${pm.isDefault ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <CreditCard size={20} className="text-slate-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">{pm.type} {pm.last4 && `•••• ${pm.last4}`}</p>
-                      <p className="text-xs text-slate-500">{pm.provider || "Card"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {pm.isDefault ? (
-                      <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded">Default</span>
-                    ) : (
-                      <button onClick={() => setDefaultPaymentMethodAction(pm.id)} className="text-xs text-teal-600 hover:underline">Set Default</button>
-                    )}
-                    <button onClick={() => deletePaymentMethodAction(pm.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={16} /></button>
-                  </div>
-                </div>
-              ))}
-              {paymentMethods.length === 0 && <p className="text-sm text-slate-500 col-span-2">No payment methods saved.</p>}
-            </div>
-
-            <h3 className="text-lg font-semibold mb-4">Add Payment Method</h3>
-            <div className="flex gap-4">
-              <button onClick={async () => {
-                setIsLoading(true);
-                await addPaymentMethodAction({ type: "Credit Card", last4: "4242", provider: "Visa" });
-                setIsLoading(false);
-              }} className="px-4 py-2 border rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                <CreditCard size={16} /> Add Test Card
-              </button>
-              <button onClick={async () => {
-                setIsLoading(true);
-                await addPaymentMethodAction({ type: "UPI", provider: "Google Pay" });
-                setIsLoading(false);
-              }} className="px-4 py-2 border rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                <Plus size={16} /> Add UPI
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

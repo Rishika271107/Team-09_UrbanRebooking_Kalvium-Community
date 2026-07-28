@@ -1,8 +1,8 @@
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getBookingById } from "@/services/booking.service";
-import { getUserAddresses } from "@/services/address.service";
 import { getUserNotifications } from "@/services/notification.service";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -13,7 +13,7 @@ export default async function RebookPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/login");
   }
@@ -21,17 +21,16 @@ export default async function RebookPage({
   const resolvedParams = await params;
   const bookingId = resolvedParams.id;
 
-  const [booking, addresses, notifications] = await Promise.all([
-    getBookingById(bookingId),
-    getUserAddresses(session.user.id),
-    getUserNotifications(session.user.id),
-  ]);
-
+  const booking = await getBookingById(bookingId);
   if (!booking || booking.userId !== session.user.id) {
     redirect("/bookings");
   }
+  if (booking.status !== "COMPLETED") {
+    redirect(`/bookings/${bookingId}`);
+  }
 
-  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
+  const notifications = await getUserNotifications(session.user.id);
+  const unreadNotificationsCount = notifications.filter((n) => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>
@@ -43,18 +42,19 @@ export default async function RebookPage({
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-bold text-slate-900">One-Click Rebook</h1>
             <p className="text-slate-500">
-              Rebooking <strong>{booking.service.name}</strong> with <strong>{booking.professional?.user?.name ?? "Professional"}</strong>.
+              Rebooking <strong>{booking.service.name}</strong>
+              {booking.professional ? (
+                <>
+                  {" "}with <strong>{booking.professional.user.name}</strong>
+                </>
+              ) : null}
+              .
             </p>
           </div>
         </div>
 
         <div className="mx-auto w-full max-w-3xl">
-          <RebookFormClient 
-            originalBookingId={booking.id}
-            addresses={addresses}
-            serviceName={booking.service.name}
-            professionalName={booking.professional?.user?.name ?? "Professional"}
-          />
+          <RebookFormClient sourceBookingId={booking.id} serviceName={booking.service.name} />
         </div>
       </div>
     </DashboardLayout>

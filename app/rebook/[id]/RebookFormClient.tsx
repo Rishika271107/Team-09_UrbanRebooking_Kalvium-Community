@@ -1,159 +1,198 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { rebookAction } from "@/lib/actions/booking.actions";
+import { Loader2 } from "lucide-react";
 
-// Note: For a real app we'd fetch this initial data server-side and pass as props, 
-// but since the form is complex we'll mix Server Actions with client components.
-const rebookSchema = z.object({
-  originalBookingId: z.string().min(1),
-  date: z.string().min(1, "Please select a date"),
-  time: z.string().min(1, "Please select a time"),
-  addressId: z.string().min(1, "Please select an address"),
-  paymentMethod: z.enum(["CREDIT_CARD", "DEBIT_CARD", "UPI", "CASH"]),
-});
+interface Slot {
+  id: string;
+  startTime: string;
+  endTime: string;
+  slotType: "AVAILABLE" | "BLOCKED" | "BOOKED";
+}
 
-type RebookFormValues = z.infer<typeof rebookSchema>;
+interface DraftBooking {
+  id: string;
+  professionalId: string | null;
+  professional: { id: string; user: { name: string } } | null;
+}
+
+function todayISODate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function RebookFormClient({
-  originalBookingId,
-  addresses,
+  sourceBookingId,
   serviceName,
-  professionalName,
 }: {
-  originalBookingId: string;
-  addresses: any[];
+  sourceBookingId: string;
   serviceName: string;
-  professionalName: string;
 }) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [creatingDraft, setCreatingDraft] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<DraftBooking | null>(null);
+  const [professionalAvailable, setProfessionalAvailable] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<RebookFormValues>({
-    resolver: zodResolver(rebookSchema),
-    defaultValues: {
-      originalBookingId,
-      addressId: addresses.find(a => a.isDefault)?.id || (addresses.length > 0 ? addresses[0].id : ""),
-      paymentMethod: "CREDIT_CARD",
+  const [date, setDate] = useState(todayISODate());
+  const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setCreatingDraft(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/bookings/${sourceBookingId}/rebook`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "Failed to start rebooking.");
+        setDraft(data.draftBooking);
+        setProfessionalAvailable(data.professionalAvailable);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong.");
+      } finally {
+        setCreatingDraft(false);
+      }
+    })();
+  }, [sourceBookingId]);
+
+  const loadSlots = useCallback(
+    async (forDate: string) => {
+      if (!draft?.professionalId) return;
+      setLoadingSlots(true);
+      setSlots(null);
+      setSelectedSlot(null);
+      try {
+        const res = await fetch(`/api/professionals/${draft.professionalId}/availability?date=${forDate}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "Failed to load availability.");
+        setSlots(data.slots);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load availability.");
+      } finally {
+        setLoadingSlots(false);
+      }
     },
-  });
+    [draft?.professionalId]
+  );
 
-  const onSubmit = async (data: RebookFormValues) => {
-    setIsSubmitting(true);
+  useEffect(() => {
+    if (draft?.professionalId && professionalAvailable) {
+      loadSlots(date);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.professionalId, professionalAvailable]);
+
+  const handleConfirm = async () => {
+    if (!draft || !draft.professionalId || !selectedSlot) return;
+    setConfirming(true);
     setError(null);
     try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => formData.append(key, value));
-      
-      const result = await rebookAction(formData);
-      
-      if (result.error) {
-        setError(result.error);
-      } else if (result.success) {
-        router.push(`/bookings/confirmation/${result.newBookingId}`);
-      }
-    } catch (err: any) {
-      setError("An unexpected error occurred.");
+      const res = await fetch("/api/bookings/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: draft.id,
+          professionalId: draft.professionalId,
+          slotStart: selectedSlot.startTime,
+          slotEnd: selectedSlot.endTime,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Failed to confirm the booking.");
+      router.push(`/bookings/confirmation/${data.booking.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
-      setIsSubmitting(false);
+      setConfirming(false);
     }
   };
 
+  if (creatingDraft) {
+    return (
+      <div className="flex items-center justify-center gap-2 rounded-xl border bg-white p-12 text-slate-500 shadow-sm">
+        <Loader2 size={20} className="animate-spin" /> Setting up your rebooking...
+      </div>
+    );
+  }
+
+  if (error && !draft) {
+    return <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>;
+  }
+
+  if (!draft) return null;
+
+  if (!professionalAvailable) {
+    return (
+      <div className="rounded-xl border bg-white p-6 shadow-sm flex flex-col gap-3">
+        <h3 className="text-lg font-bold text-slate-900">Your previous professional is unavailable</h3>
+        <p className="text-slate-500 text-sm">
+          We&apos;ve created a draft booking for {serviceName}, but the professional from your original booking is no
+          longer active. Please contact support to choose a new professional, or try again later.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
-      {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200">
-          {error}
-        </div>
-      )}
+    <div className="flex flex-col gap-6">
+      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200">{error}</div>}
 
-      {/* Date & Time Selection */}
       <div className="rounded-xl border bg-white p-6 shadow-sm flex flex-col gap-4">
-        <h3 className="text-lg font-bold text-slate-900 border-b pb-3">When do you need the service?</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-700">Date</label>
-            <input 
-              type="date" 
-              className="rounded-lg border border-slate-200 px-4 py-2 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-              {...register("date")}
-            />
-            {errors.date && <span className="text-xs text-red-500">{errors.date.message}</span>}
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-700">Time</label>
-            <input 
-              type="time" 
-              className="rounded-lg border border-slate-200 px-4 py-2 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-              {...register("time")}
-            />
-            {errors.time && <span className="text-xs text-red-500">{errors.time.message}</span>}
-          </div>
-        </div>
+        <h3 className="text-lg font-bold text-slate-900 border-b pb-3">Choose a date</h3>
+        <input
+          type="date"
+          value={date}
+          min={todayISODate()}
+          onChange={(e) => {
+            setDate(e.target.value);
+            loadSlots(e.target.value);
+          }}
+          className="w-fit rounded-lg border border-slate-200 px-4 py-2 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+        />
       </div>
 
-      {/* Address Selection */}
       <div className="rounded-xl border bg-white p-6 shadow-sm flex flex-col gap-4">
-        <h3 className="text-lg font-bold text-slate-900 border-b pb-3">Service Address</h3>
-        
-        <div className="flex flex-col gap-3">
-          {addresses.map((address) => (
-            <label key={address.id} className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-4 hover:bg-slate-50 [&:has(:checked)]:border-teal-500 [&:has(:checked)]:bg-teal-50">
-              <input 
-                type="radio" 
-                value={address.id} 
-                className="mt-1 accent-teal-600"
-                {...register("addressId")}
-              />
-              <div className="flex flex-col">
-                <span className="font-semibold text-slate-900">Address</span>
-                <span className="text-sm text-slate-500">{address.addressLine}, {address.city}, {address.state} {address.pincode}</span>
-              </div>
-            </label>
-          ))}
-          {errors.addressId && <span className="text-xs text-red-500">{errors.addressId.message}</span>}
+        <h3 className="text-lg font-bold text-slate-900 border-b pb-3">Available slots</h3>
+        {loadingSlots && (
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
+            <Loader2 size={16} className="animate-spin" /> Loading slots...
+          </div>
+        )}
+        {!loadingSlots && slots && slots.filter((s) => s.slotType === "AVAILABLE").length === 0 && (
+          <p className="text-sm text-slate-500">No available slots on this date. Try another date.</p>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {slots
+            ?.filter((s) => s.slotType === "AVAILABLE")
+            .map((slot) => (
+              <button
+                key={slot.id}
+                onClick={() => setSelectedSlot(slot)}
+                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                  selectedSlot?.id === slot.id
+                    ? "border-teal-500 bg-teal-50 text-teal-700"
+                    : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {new Date(slot.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </button>
+            ))}
         </div>
-      </div>
-
-      {/* Payment Selection */}
-      <div className="rounded-xl border bg-white p-6 shadow-sm flex flex-col gap-4">
-        <h3 className="text-lg font-bold text-slate-900 border-b pb-3">Payment Method</h3>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {["CREDIT_CARD", "DEBIT_CARD", "UPI", "CASH"].map((method) => (
-            <label key={method} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-4 hover:bg-slate-50 [&:has(:checked)]:border-teal-500 [&:has(:checked)]:bg-teal-50">
-              <input 
-                type="radio" 
-                value={method} 
-                className="accent-teal-600"
-                {...register("paymentMethod")}
-              />
-              <span className="font-medium text-slate-700">{method.replace("_", " ")}</span>
-            </label>
-          ))}
-        </div>
-        {errors.paymentMethod && <span className="text-xs text-red-500">{errors.paymentMethod.message}</span>}
       </div>
 
       <div className="flex justify-end pt-4">
-        <button 
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-lg bg-teal-600 px-8 py-3 font-bold text-white shadow-md transition-all hover:bg-teal-700 disabled:opacity-70 flex items-center justify-center min-w-[200px]"
+        <button
+          type="button"
+          disabled={!selectedSlot || confirming}
+          onClick={handleConfirm}
+          className="rounded-lg bg-teal-600 px-8 py-3 font-bold text-white shadow-md transition-all hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center min-w-[200px]"
         >
-          {isSubmitting ? (
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-          ) : (
-            "Confirm Rebooking"
-          )}
+          {confirming ? <Loader2 size={20} className="animate-spin" /> : "Confirm Rebooking"}
         </button>
       </div>
-    </form>
+    </div>
   );
 }

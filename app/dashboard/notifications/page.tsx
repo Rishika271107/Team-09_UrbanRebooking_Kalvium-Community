@@ -1,18 +1,19 @@
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getUserNotifications } from "@/services/notification.service";
 import NotificationsClient from "./NotificationsClient";
 
 export default async function NotificationsPage() {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/login");
   }
 
   const userId = session.user.id;
   const notifications = await getUserNotifications(userId);
-  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
+  const unreadNotificationsCount = notifications.filter(n => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>
