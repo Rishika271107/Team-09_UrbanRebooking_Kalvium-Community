@@ -54,6 +54,7 @@ export default async function RebookPage({
             addresses={addresses}
             serviceName={booking.service.name}
             professionalName={booking.professional?.user?.name ?? "Professional"}
+            isProfessionalActive={booking.professional?.active ?? false}
           />
         </div>
       </div>

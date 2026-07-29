@@ -7,6 +7,7 @@ import { getReviewForBooking } from "@/services/review.service";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Clock, MapPin, CheckCircle2, CreditCard, RotateCw, Star } from "lucide-react";
 import ReviewSection from "@/components/dashboard/ReviewSection";
+import { formatCurrency } from "@/lib/format";
 
 export default async function BookingDetailsPage({
   params,
@@ -107,12 +108,12 @@ export default async function BookingDetailsPage({
               
               <div className="flex items-center justify-between">
                 <span className="text-slate-600">Service Fee</span>
-                <span className="font-medium text-slate-900">${booking.service.price}</span>
+                <span className="font-medium text-slate-900">{formatCurrency(booking.service.price)}</span>
               </div>
               
               <div className="flex items-center justify-between border-t pt-4 mt-2">
                 <span className="font-bold text-slate-900">Total</span>
-                <span className="font-bold text-teal-700 text-xl">${booking.service.price}</span>
+                <span className="font-bold text-teal-700 text-xl">{formatCurrency(booking.service.price)}</span>
               </div>
 
             </div>

@@ -24,15 +24,18 @@ export default function RebookFormClient({
   addresses,
   serviceName,
   professionalName,
+  isProfessionalActive,
 }: {
   originalBookingId: string;
   addresses: any[];
   serviceName: string;
   professionalName: string;
+  isProfessionalActive?: boolean;
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<RebookFormValues>({
     resolver: zodResolver(rebookSchema),
@@ -54,23 +57,40 @@ export default function RebookFormClient({
       
       if (result.error) {
         setError(result.error);
+        setIsSubmitting(false);
       } else if (result.success) {
-        router.push(`/bookings/confirmation/${result.newBookingId}`);
+        setShowToast(true);
+        setTimeout(() => {
+          router.push(`/bookings/${result.newBookingId}`);
+        }, 2000);
       }
     } catch (err: any) {
       setError("An unexpected error occurred.");
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
-      {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200">
-          {error}
+    <div className="relative">
+      {/* Success Toast */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-teal-600 px-6 py-3 text-white shadow-lg transition-all animate-in fade-in slide-in-from-bottom-5">
+          Your booking has been successfully rebooked.
         </div>
       )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+        {error && (
+          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200">
+            {error}
+          </div>
+        )}
+
+        {isProfessionalActive === false && (
+          <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-700 border border-amber-200 font-medium">
+            Your previous professional is unavailable. We've assigned the next best available professional.
+          </div>
+        )}
 
       {/* Date & Time Selection */}
       <div className="rounded-xl border bg-white p-6 shadow-sm flex flex-col gap-4">
@@ -155,5 +175,6 @@ export default function RebookFormClient({
         </button>
       </div>
     </form>
+    </div>
   );
 }

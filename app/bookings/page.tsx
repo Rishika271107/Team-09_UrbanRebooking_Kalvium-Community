@@ -5,6 +5,7 @@ import { getUserBookingsPaginated } from "@/services/booking.service";
 import { getUserNotifications } from "@/services/notification.service";
 import Link from "next/link";
 import { ChevronRight, Calendar, Clock, MapPin } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 
 export default async function BookingHistoryPage({
   searchParams,
@@ -90,7 +91,7 @@ export default async function BookingHistoryPage({
                   
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-slate-500 font-medium">Total Price</span>
-                    <span className="font-bold text-slate-900">${booking.price}</span>
+                    <span className="font-bold text-slate-900">{formatCurrency(booking.price)}</span>
                   </div>
 
                   <div className="flex items-center text-teal-600">

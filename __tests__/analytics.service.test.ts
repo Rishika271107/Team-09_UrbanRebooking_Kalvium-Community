@@ -7,7 +7,7 @@ vi.mock('../lib/prisma', () => ({
     booking: {
       findMany: vi.fn(),
     },
-    rebookHistory: {
+    rebookingEvent: {
       count: vi.fn(),
     },
   },
@@ -18,7 +18,7 @@ describe('Analytics Service', () => {
 
   it('returns zero summary when user has no bookings', async () => {
     (prisma.booking.findMany as any).mockResolvedValue([]);
-    (prisma.rebookHistory.count as any).mockResolvedValue(0);
+    (prisma.rebookingEvent.count as any).mockResolvedValue(0);
 
     const result = await getDashboardAnalytics('user-empty');
     expect(result.summary.totalBookings).toBe(0);
@@ -35,15 +35,15 @@ describe('Analytics Service', () => {
         status: 'COMPLETED',
         price: 100,
         createdAt: new Date('2026-01-15'),
-        service: { name: 'Plumbing' },
+        service: { name: 'Plumbing', price: 100 },
         payment: null,
       },
       {
         id: 'bk-2',
-        status: 'UPCOMING',
+        status: 'PENDING',
         price: 200,
         createdAt: new Date('2026-01-20'),
-        service: { name: 'Plumbing' },
+        service: { name: 'Plumbing', price: 200 },
         payment: null,
       },
       {
@@ -51,12 +51,12 @@ describe('Analytics Service', () => {
         status: 'COMPLETED',
         price: 150,
         createdAt: new Date('2026-02-10'),
-        service: { name: 'Electrical' },
+        service: { name: 'Electrical', price: 150 },
         payment: null,
       },
     ];
     (prisma.booking.findMany as any).mockResolvedValue(bookings);
-    (prisma.rebookHistory.count as any).mockResolvedValue(1);
+    (prisma.rebookingEvent.count as any).mockResolvedValue(1);
 
     const result = await getDashboardAnalytics('user-1');
 
@@ -64,11 +64,11 @@ describe('Analytics Service', () => {
     expect(result.summary.totalSpent).toBe(450);
     expect(result.summary.rebookPercentage).toBe(33); // 1/3 = 33%
 
-    // Status distribution: 2 COMPLETED, 1 UPCOMING
+    // Status distribution: 2 COMPLETED, 1 PENDING
     const completedEntry = result.bookingStatus.find(s => s.name === 'Completed');
-    const upcomingEntry = result.bookingStatus.find(s => s.name === 'Upcoming');
+    const pendingEntry = result.bookingStatus.find(s => s.name === 'Pending');
     expect(completedEntry?.value).toBe(2);
-    expect(upcomingEntry?.value).toBe(1);
+    expect(pendingEntry?.value).toBe(1);
 
     // Service usage: Plumbing x2, Electrical x1
     expect(result.serviceUsage[0].name).toBe('Plumbing');

@@ -134,7 +134,6 @@ export default function SignupPage() {
                     <input id="agreeTerms" type="checkbox" {...register("agreeTerms")} className="sr-only peer" />
                     <div
                       className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${agreeTerms ? "bg-[#047260] border-[#047260]" : "border-slate-300 bg-white"} ${errors.agreeTerms ? "border-red-400" : ""}`}
-                      onClick={() => setValue("agreeTerms", !agreeTerms)}
                     >
                       {agreeTerms && (
                         <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
