@@ -45,7 +45,7 @@ describe('Booking Service', () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('bk-1');
       expect(prisma.booking.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { customerId: 'user-1' } })
+        expect.objectContaining({ where: { userId: 'user-1' } })
       );
     });
 
