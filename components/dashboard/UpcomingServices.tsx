@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, CalendarCheck } from "lucide-react";
 
 export interface UpcomingServiceProps {
   id: string;
@@ -30,22 +30,26 @@ export function UpcomingServices({ services }: UpcomingServicesProps) {
           services.map((service) => (
             <div key={service.id} className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-4 transition-colors hover:bg-slate-100">
               <div className="flex items-center gap-4">
-                <img
-                  src={service.professionalAvatar}
-                  alt={service.professionalName}
-                  className="h-12 w-12 rounded-full object-cover"
-                />
+                {service.professionalAvatar ? (
+                  <img
+                    src={service.professionalAvatar}
+                    alt={service.professionalName}
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 text-teal-600">
+                    <CalendarCheck size={24} />
+                  </div>
+                )}
                 <div className="flex flex-col">
-                  <span className="font-bold text-slate-900">{service.professionalName}</span>
-                  <span className="text-sm text-slate-500">{service.serviceName}</span>
+                  <span className="font-medium text-slate-900">{service.serviceName}</span>
+                  <span className="text-sm text-slate-500">
+                    {service.professionalName} &middot; {service.date}, {service.time}
+                  </span>
                 </div>
               </div>
               
-              <div className="flex items-center gap-6">
-                <div className="hidden flex-col items-end sm:flex">
-                  <span className="font-semibold text-slate-900">{service.date}</span>
-                  <span className="text-sm text-slate-500">{service.time}</span>
-                </div>
+              <div className="flex items-center">
                 <ChevronRight className="text-slate-400" size={20} />
               </div>
             </div>

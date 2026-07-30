@@ -141,7 +141,8 @@ export default function ProfessionalCalendarClient({ userName }: { userName: str
 
         {profile && (
           <section className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-start justify-between mb-4 gap-4">
+              {/* Left: profile info */}
               <div>
                 <h2 className="font-semibold text-slate-900">
                   {profile.active ? "Active on platform" : "Inactive"}
@@ -150,12 +151,34 @@ export default function ProfessionalCalendarClient({ userName }: { userName: str
                   {profile.skills.join(" • ")} • {profile.rating.toFixed(1)}★
                 </p>
               </div>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => handleDateChange(e.target.value)}
-                className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              />
+
+              {/* Right: date picker + live slot summary */}
+              <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                />
+
+                {/* Live slot counts — updates on every toggle */}
+                {slots && (
+                  <div className="flex items-center gap-3 text-xs font-medium">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">
+                      <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" />
+                      {slots.filter((s) => s.slotType === "AVAILABLE").length} Available
+                    </span>
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                      {slots.filter((s) => s.slotType === "BLOCKED").length} Blocked
+                    </span>
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#047260]/10 border border-[#047260]/20 text-[#047260]">
+                      <span className="w-2 h-2 rounded-full bg-[#047260] inline-block" />
+                      {slots.filter((s) => s.slotType === "BOOKED").length} Booked
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {slotsError && (
@@ -206,3 +229,4 @@ export default function ProfessionalCalendarClient({ userName }: { userName: str
     </div>
   );
 }
+

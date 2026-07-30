@@ -10,7 +10,11 @@ export async function updateProfile(data: { fullName: string; email: string; pho
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    await updateUserProfile(session.user.id, data);
+    await updateUserProfile(session.user.id, {
+      name: data.fullName,
+      email: data.email,
+      phone: data.phone,
+    });
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
