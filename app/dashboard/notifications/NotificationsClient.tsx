@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Bell, Check, Trash2, CalendarHeart, Tag, CreditCard, CheckCheck } from "lucide-react";
 import { markAsReadAction, markAllAsReadAction, deleteNotificationAction, clearAllNotificationsAction } from "@/app/actions/notification.actions";
+import { EmptyState } from "@/components/EmptyState";
 
 type NotificationItem = {
   id: string;
@@ -129,13 +130,15 @@ export default function NotificationsClient({ initialNotifications }: { initialN
       </div>
 
       {filteredNotifications.length === 0 ? (
-        <div className="py-12 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mb-4">
-            <Bell size={32} />
-          </div>
-          <h3 className="text-lg font-medium text-slate-900 mb-1">No notifications</h3>
-          <p className="text-slate-500">You're all caught up in this category.</p>
-        </div>
+        <EmptyState
+          type="no-notifications"
+          variant="card"
+          description={
+            activeTab === "Unread"
+              ? "You have no unread notifications. You're all caught up!"
+              : `No ${activeTab.toLowerCase()} notifications yet.`
+          }
+        />
       ) : (
         <div className="flex flex-col gap-6">
           {filteredNotifications.map((n) => {

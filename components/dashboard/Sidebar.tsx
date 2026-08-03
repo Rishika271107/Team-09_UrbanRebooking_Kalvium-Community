@@ -39,11 +39,11 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-2 px-4">
+      <nav aria-label="Main Navigation" className="flex flex-1 flex-col gap-2 px-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link key={item.name} href={item.href}>
+            <Link key={item.name} href={item.href} aria-current={isActive ? "page" : undefined} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#047260] focus-visible:rounded-xl">
               <div
                 className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
                   isActive
@@ -52,11 +52,11 @@ export function Sidebar() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <item.icon size={20} className={isActive ? "text-white" : "text-slate-500"} />
+                  <item.icon size={20} className={isActive ? "text-white" : "text-slate-500"} aria-hidden="true" />
                   {item.name}
                 </div>
                 {item.badge && (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+                  <div aria-label={`${item.badge} unread`} className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
                     {item.badge}
                   </div>
                 )}
@@ -70,9 +70,10 @@ export function Sidebar() {
       <div className="p-4 pb-8">
         <button 
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          aria-label="Logout"
         >
-          <LogOut size={20} className="text-slate-400" />
+          <LogOut size={20} className="text-slate-400" aria-hidden="true" />
           Logout
         </button>
       </div>

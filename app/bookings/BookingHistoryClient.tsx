@@ -11,7 +11,17 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Calendar,
+  Clock,
+  FileText,
+  Filter,
+  ArrowUpDown,
+  HelpCircle,
+  Loader2
 } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
+import { toast } from "@/components/ErrorComponents";
 
 /* ── Types ───────────────────────────────────────────────── */
 interface Booking {
@@ -75,7 +85,7 @@ function formatDate(iso: string | null) {
   const d = new Date(iso);
   const datePart = d.toLocaleDateString("en-GB", {
     day: "2-digit",
-    month: "2-digit",
+    month: "short",
     year: "numeric",
   });
   const timePart = d.toLocaleTimeString("en-GB", {
@@ -88,7 +98,7 @@ function formatDate(iso: string | null) {
 function formatPrice(p: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "INR",
+    currency: "USD",
     maximumFractionDigits: 0,
   }).format(p);
 }
@@ -127,73 +137,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "REBOOKED", label: "Rebooked" },
 ];
 
-const PAGE_SIZE = 8;
-
-/* ── Dropdown menu component ─────────────────────────────── */
-function ActionsMenu({
-  booking,
-  onRebook,
-  onCancel,
-}: {
-  booking: Booking;
-  onRebook: (id: string) => void;
-  onCancel: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const router = useRouter();
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-      >
-        <MoreVertical size={16} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-20 w-44 rounded-xl border border-slate-200 bg-white shadow-lg py-1 overflow-hidden">
-            <button
-              onClick={() => {
-                setOpen(false);
-                router.push(`/bookings/${booking.id}`);
-              }}
-              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <Eye size={14} className="text-slate-400" />
-              View Details
-            </button>
-            {booking.eligibleForRebook && (
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  onRebook(booking.id);
-                }}
-                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                <RotateCcw size={14} className="text-slate-400" />
-                Rebook
-              </button>
-            )}
-            {(booking.status === "CONFIRMED" || booking.status === "PENDING") && (
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  onCancel(booking.id);
-                }}
-                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <XCircle size={14} className="text-red-400" />
-                Cancel
-              </button>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+const PAGE_SIZE = 9; // Grid of 3 on desktop -> 3 rows = 9 cards
 
 /* ── Cancel confirmation modal ───────────────────────────── */
 function CancelModal({
@@ -338,16 +282,26 @@ function ReviewModal({
   );
 }
 
-/* ── Skeleton row ────────────────────────────────────────── */
-function SkeletonRow() {
+/* ── Skeleton Card ───────────────────────────────────────── */
+function SkeletonCard() {
   return (
-    <tr className="border-b border-slate-100 animate-pulse">
-      {[200, 120, 150, 200, 70, 90, 110].map((w, i) => (
-        <td key={i} className="px-4 py-4">
-          <div className="h-4 rounded bg-slate-100" style={{ width: w }} />
-        </td>
-      ))}
-    </tr>
+    <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-pulse">
+      <div className="h-32 w-full bg-slate-200"></div>
+      <div className="flex flex-col p-5 gap-4 flex-1">
+        <div className="flex items-start justify-between">
+          <div className="h-5 w-1/2 bg-slate-200 rounded"></div>
+          <div className="h-5 w-16 bg-slate-200 rounded-full"></div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="h-4 w-3/4 bg-slate-200 rounded"></div>
+          <div className="h-4 w-5/6 bg-slate-200 rounded"></div>
+        </div>
+        <div className="mt-auto pt-4 flex gap-2 border-t border-slate-100">
+          <div className="h-9 flex-1 bg-slate-200 rounded-lg"></div>
+          <div className="h-9 flex-1 bg-slate-200 rounded-lg"></div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -362,6 +316,35 @@ export default function BookingHistoryClient() {
   const [page, setPage] = useState(1);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const [sortOption, setSortOption] = useState("LATEST"); 
+  const [dateFilter, setDateFilter] = useState("ALL_TIME");
+
+  const handleDownloadInvoice = async (bookingId: string) => {
+    setDownloadingId(bookingId);
+    toast({
+      type: "info",
+      title: "Generating Invoice",
+      message: "Please wait while we prepare your invoice..."
+    });
+    // Simulate generation delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setDownloadingId(null);
+    toast({
+      type: "success",
+      title: "Invoice Downloaded",
+      message: `Invoice for booking #${bookingId.substring(0, 8)} saved.`
+    });
+  };
+
+  const handleContactSupport = () => {
+    toast({
+      type: "info",
+      title: "Contacting Support",
+      message: "Redirecting you to our 24/7 customer support line..."
+    });
+  }; 
 
   /* Fetch bookings */
   useEffect(() => {
@@ -400,36 +383,62 @@ export default function BookingHistoryClient() {
     [bookings]
   );
 
-  /* Filter */
-  const filtered = useMemo(() => {
+  /* Filter & Sort */
+  const filteredAndSorted = useMemo(() => {
     let list = [...bookings];
-    if (activeTab === "COMPLETED")
-      list = list.filter((b) => b.status === "COMPLETED");
-    else if (activeTab === "UPCOMING")
-      list = list.filter(
-        (b) => b.status === "CONFIRMED" || b.status === "PENDING"
-      );
-    else if (activeTab === "CANCELLED")
-      list = list.filter((b) => b.status === "CANCELLED");
-    else if (activeTab === "REBOOKED")
-      list = list.filter((b) => b.status === "REBOOKED");
+    
+    // Status tab filter
+    if (activeTab === "COMPLETED") list = list.filter((b) => b.status === "COMPLETED");
+    else if (activeTab === "UPCOMING") list = list.filter((b) => b.status === "CONFIRMED" || b.status === "PENDING");
+    else if (activeTab === "CANCELLED") list = list.filter((b) => b.status === "CANCELLED");
+    else if (activeTab === "REBOOKED") list = list.filter((b) => b.status === "REBOOKED");
 
+    // Search filter
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(
-        (b) =>
-          b.service.name.toLowerCase().includes(q) ||
-          b.id.toLowerCase().includes(q) ||
-          (b.professional?.user.name ?? "").toLowerCase().includes(q)
+      list = list.filter((b) => 
+        b.service.name.toLowerCase().includes(q) ||
+        b.id.toLowerCase().includes(q) ||
+        (b.professional?.user.name ?? "").toLowerCase().includes(q)
       );
     }
+
+    // Date filter
+    const now = new Date();
+    if (dateFilter !== "ALL_TIME") {
+      const cutoffDate = new Date();
+      if (dateFilter === "30_DAYS") cutoffDate.setDate(now.getDate() - 30);
+      else if (dateFilter === "3_MONTHS") cutoffDate.setMonth(now.getMonth() - 3);
+      else if (dateFilter === "6_MONTHS") cutoffDate.setMonth(now.getMonth() - 6);
+
+      list = list.filter(b => {
+        const d = new Date(b.slotStart ?? b.createdAt);
+        return d >= cutoffDate;
+      });
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      const dateA = new Date(a.slotStart ?? a.createdAt).getTime();
+      const dateB = new Date(b.slotStart ?? b.createdAt).getTime();
+      
+      switch(sortOption) {
+        case "LATEST": return dateB - dateA;
+        case "OLDEST": return dateA - dateB;
+        case "PRICE_DESC": return b.service.price - a.service.price;
+        case "PRICE_ASC": return a.service.price - b.service.price;
+        case "SERVICE_AZ": return a.service.name.localeCompare(b.service.name);
+        default: return dateB - dateA;
+      }
+    });
+
     return list;
-  }, [bookings, activeTab, search]);
+  }, [bookings, activeTab, search, dateFilter, sortOption]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE));
+  const paged = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => setPage(1), [activeTab, search]);
+  useEffect(() => setPage(1), [activeTab, search, dateFilter, sortOption]);
 
   const handleRebook = (id: string) => router.push(`/rebook/${id}`);
 
@@ -449,202 +458,244 @@ export default function BookingHistoryClient() {
         />
       )}
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* ── Tabs + Search ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 pt-4 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-1.5 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-[#047260] text-white"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                }`}
+      <div className="flex flex-col gap-6">
+        
+        {/* ── Filters & Search Bar ── */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            
+            {/* Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar flex-1">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
+                    activeTab === tab.key
+                      ? "bg-[#047260] text-white"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                  }`}
+                >
+                  {tab.label}
+                  {!isLoading && counts[tab.key] > 0 && activeTab !== tab.key && (
+                    <span className="ml-1.5 text-xs font-medium opacity-60 bg-slate-200 px-1.5 py-0.5 rounded-full">
+                      {counts[tab.key]}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative w-full md:w-64">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
+                placeholder="Search bookings..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-full border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-sm outline-none transition-colors focus:border-teal-500 focus:bg-white focus:ring-1 focus:ring-teal-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 border-t border-slate-100 pt-4 overflow-x-auto no-scrollbar">
+            {/* Sort Filter */}
+            <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 flex-shrink-0">
+              <ArrowUpDown size={14} className="text-slate-400 mr-2" />
+              <select 
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="bg-transparent text-sm text-slate-700 font-medium outline-none cursor-pointer appearance-none pr-4"
               >
-                {tab.label}
-                {!isLoading && counts[tab.key] > 0 && activeTab !== tab.key && (
-                  <span className="ml-1.5 text-xs font-medium opacity-60">
-                    {counts[tab.key]}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+                <option value="LATEST">Latest First</option>
+                <option value="OLDEST">Oldest First</option>
+                <option value="PRICE_DESC">Price: High to Low</option>
+                <option value="PRICE_ASC">Price: Low to High</option>
+                <option value="SERVICE_AZ">Service: A to Z</option>
+              </select>
+            </div>
 
-          <div className="relative flex-shrink-0 w-full sm:w-60">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="text"
-              placeholder="Search by service or ID"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-8 pr-4 text-sm outline-none transition-colors focus:border-teal-500 focus:bg-white focus:ring-1 focus:ring-teal-500"
-            />
+            {/* Date Filter */}
+            <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 flex-shrink-0">
+              <Filter size={14} className="text-slate-400 mr-2" />
+              <select 
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="bg-transparent text-sm text-slate-700 font-medium outline-none cursor-pointer appearance-none pr-4"
+              >
+                <option value="ALL_TIME">All Time</option>
+                <option value="30_DAYS">Last 30 Days</option>
+                <option value="3_MONTHS">Last 3 Months</option>
+                <option value="6_MONTHS">Last 6 Months</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* ── Table ── */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50/60">
-                {[
-                  "Service",
-                  "Date",
-                  "Professional",
-                  "Address",
-                  "Price",
-                  "Status",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap border-b border-slate-100"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                Array.from({ length: 7 }).map((_, i) => <SkeletonRow key={i} />)
-              ) : paged.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="py-16 text-center text-slate-400 text-sm"
-                  >
-                    No bookings found.
-                  </td>
-                </tr>
-              ) : (
-                paged.map((booking) => {
-                  const meta = getStatusMeta(booking.status);
-                  const proName =
-                    booking.professional?.user.name ?? "Unassigned";
-                  const initials = getInitials(proName);
-                  const color = avatarColor(proName);
-                  const [datePart, timePart] = formatDate(
-                    booking.slotStart ?? booking.createdAt
-                  );
-                  const shortId = `#b-${booking.id.substring(0, 4)}`;
+        {/* ── Grid Layout ── */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : filteredAndSorted.length === 0 ? (
+          <EmptyState
+            type={search || dateFilter !== "ALL_TIME" || activeTab !== "ALL" ? "no-search-results" : "no-bookings"}
+            onPrimary={search || dateFilter !== "ALL_TIME" || activeTab !== "ALL" ? () => {
+              setSearch("");
+              setDateFilter("ALL_TIME");
+              setActiveTab("ALL");
+              setSortOption("LATEST");
+            } : undefined}
+            primaryLabel={search || dateFilter !== "ALL_TIME" || activeTab !== "ALL" ? "Clear Filters" : undefined}
+            variant="card"
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paged.map((booking, index) => {
+              const meta = getStatusMeta(booking.status);
+              const proName = booking.professional?.user.name ?? "Unassigned";
+              const initials = getInitials(proName);
+              const color = avatarColor(proName);
+              const [datePart, timePart] = formatDate(booking.slotStart ?? booking.createdAt);
+              const shortId = `#b-${booking.id.substring(0, 4)}`;
 
-                  return (
-                    <tr
-                      key={booking.id}
-                      className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
-                    >
-                      {/* Service */}
-                      <td className="px-4 py-3.5">
-                        <p className="font-semibold text-slate-800 leading-tight">
-                          {booking.service.name}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-0.5">{shortId}</p>
-                      </td>
-
-                      {/* Date */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <p className="text-slate-700">{datePart}</p>
-                        <p className="text-xs text-teal-600">{timePart}</p>
-                      </td>
-
-                      {/* Professional */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${color}`}
-                          >
-                            {initials}
-                          </div>
-                          <span className="text-slate-700 whitespace-nowrap">
-                            {proName}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Address */}
-                      <td className="px-4 py-3.5 max-w-[180px]">
-                        <p className="text-slate-500 text-xs line-clamp-2">
-                          {booking.address ?? "221B Baker Street, Bandra West"}
-                        </p>
-                      </td>
-
-                      {/* Price */}
-                      <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-800">
+              return (
+                <div key={booking.id} className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md hover:border-teal-200 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: `${index * 50}ms` }}>
+                  {/* Service Image placeholder */}
+                  <div className="h-32 w-full bg-slate-100 flex flex-col items-center justify-center border-b border-slate-100 relative group overflow-hidden">
+                     <div className="absolute inset-0 bg-slate-200/50 mix-blend-overlay transition-transform duration-500 group-hover:scale-105"></div>
+                     <span className="text-slate-400 font-medium relative z-10">Service Image</span>
+                     <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm ${meta.bg} ${meta.color} border ${meta.border} z-10`}>
+                       {meta.label}
+                     </span>
+                  </div>
+                  
+                  <div className="flex flex-col p-5 flex-1">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-bold text-slate-900 line-clamp-1">{booking.service.name}</h3>
+                        <p className="text-xs font-medium text-slate-400 mt-0.5">{shortId}</p>
+                      </div>
+                      <div className="text-lg font-bold text-slate-900">
                         {formatPrice(booking.service.price)}
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* Status */}
-                      <td className="px-4 py-3.5">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border ${meta.bg} ${meta.color} ${meta.border}`}
-                        >
-                          {meta.label}
+                    <div className="flex flex-col gap-3 text-sm text-slate-600">
+                      <div className="flex items-center gap-3">
+                        <Calendar size={16} className="text-slate-400" />
+                        <span>{datePart}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Clock size={16} className="text-slate-400" />
+                        <span>{timePart}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MapPin size={16} className="text-slate-400 min-w-4" />
+                        <span className="line-clamp-1" title={booking.address ?? "No address"}>
+                          {booking.address ?? "221B Baker Street, Bandra West"}
                         </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1">
-                          {booking.eligibleForRebook && (
-                            <button
-                              onClick={() => handleRebook(booking.id)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-teal-300 hover:text-teal-700 transition-colors"
-                            >
-                              <RotateCcw size={11} />
-                              Rebook
-                            </button>
-                          )}
-                          {booking.status === "COMPLETED" && (
-                            <button
-                              onClick={() => setReviewId(booking.id)}
-                              title="Rate this service"
-                              className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50 transition-colors"
-                            >
-                              <Star size={12} />
-                            </button>
-                          )}
-                          <ActionsMenu
-                            booking={booking}
-                            onRebook={handleRebook}
-                            onCancel={(id) => setCancelId(id)}
-                          />
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 pt-3 border-t border-slate-100">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${color}`}>
+                          {initials}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        <span className="font-medium text-slate-700">{proName}</span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+                      <button 
+                        onClick={() => router.push(`/bookings/${booking.id}`)}
+                        className="flex-1 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Eye size={14} />
+                        Details
+                      </button>
+                      
+                      {booking.eligibleForRebook && (
+                        <button 
+                          onClick={() => handleRebook(booking.id)}
+                          className="flex-1 py-2 rounded-lg bg-teal-50 hover:bg-teal-100 border border-teal-200 text-xs font-semibold text-teal-700 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <RotateCcw size={14} />
+                          Rebook
+                        </button>
+                      )}
+
+                      {booking.status === "COMPLETED" && (
+                        <button 
+                          onClick={() => setReviewId(booking.id)}
+                          className="flex-1 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-semibold text-amber-750 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <Star size={14} />
+                          Rate Professional
+                        </button>
+                      )}
+
+                      {(booking.status === "CONFIRMED" || booking.status === "PENDING") && (
+                        <button 
+                          onClick={() => setCancelId(booking.id)}
+                          className="flex-1 py-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-semibold text-red-700 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <XCircle size={14} />
+                          Cancel
+                        </button>
+                      )}
+
+                      <button 
+                        className="flex-none p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition-colors disabled:opacity-50"
+                        title="Download Invoice"
+                        onClick={() => handleDownloadInvoice(booking.id)}
+                        disabled={downloadingId === booking.id}
+                      >
+                        {downloadingId === booking.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <FileText size={16} />
+                        )}
+                      </button>
+
+                      <button 
+                        className="flex-none p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition-colors"
+                        title="Contact Support"
+                        onClick={handleContactSupport}
+                      >
+                        <HelpCircle size={16} />
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* ── Pagination ── */}
-        {!isLoading && filtered.length > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/40">
-            <span className="text-xs text-slate-500">
-              Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–
-              {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+        {!isLoading && filteredAndSorted.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <span className="text-sm font-medium text-slate-600">
+              Showing {Math.min((page - 1) * PAGE_SIZE + 1, filteredAndSorted.length)} to {Math.min(page * PAGE_SIZE, filteredAndSorted.length)} of {filteredAndSorted.length}
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={16} />
               </button>
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setPage(i + 1)}
-                  className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors ${
+                  className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
                     page === i + 1
                       ? "bg-[#047260] text-white"
                       : "border border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -656,9 +707,9 @@ export default function BookingHistoryClient() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors"
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>

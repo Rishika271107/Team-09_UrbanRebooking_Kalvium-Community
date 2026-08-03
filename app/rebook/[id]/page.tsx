@@ -48,11 +48,12 @@ export default async function RebookPage({
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-3xl">
+        <div className="w-full">
           <RebookFormClient 
             originalBookingId={booking.id}
             addresses={addresses}
             serviceName={booking.service.name}
+            servicePrice={booking.service.price}
             professionalName={booking.professional?.user?.name ?? "Professional"}
             isProfessionalActive={booking.professional?.active ?? false}
           />

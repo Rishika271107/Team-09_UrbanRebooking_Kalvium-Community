@@ -30,7 +30,8 @@ export function StatsCard({ stat, index }: StatsCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md"
     >
       <div className="flex items-start justify-between">
         <span className="text-sm font-medium text-slate-500">{stat.title}</span>
