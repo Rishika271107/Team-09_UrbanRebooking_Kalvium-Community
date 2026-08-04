@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -50,23 +50,69 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  professional Professional?
-  bookings     Booking[]      @relation("CustomerBookings")
+  professional  Professional?
+  bookings      Booking[]      @relation("CustomerBookings")
+  addresses     Address[]
+  notifications Notification[]
+  reviews       Review[]
 
   @@index([email])
 }
 
 model Professional {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skills String
-  active    Boolean  @default(true)
-  rating    Float    @default(5.0)
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills        String[]
+  active        Boolean  @default(true)
+  rating        Float    @default(5.0)
+  jobsCompleted Int      @default(0)
+  createdAt     DateTime @default(now())
 
   bookings      Booking[]      @relation("ProfessionalBookings")
   calendarSlots CalendarSlot[]
+  reviews       Review[]
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addressLine String
+  city        String
+  state       String
+  pincode     String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  message    String
+  readStatus Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Review {
+  id             String       @id @default(cuid())
+  bookingId      String       @unique
+  booking        Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  rating         Int
+  reviewText     String?
+  createdAt      DateTime     @default(now())
+
+  @@index([professionalId])
 }
 
 model Service {
@@ -103,6 +149,7 @@ model Booking {
   updatedAt DateTime @updatedAt
 
   calendarSlot CalendarSlot?
+  review       Review?
 
   rebookingEventsAsSource RebookingEvent[] @relation("SourceBookingEvents")
   rebookingEventsAsNew    RebookingEvent[] @relation("NewBookingEvents")

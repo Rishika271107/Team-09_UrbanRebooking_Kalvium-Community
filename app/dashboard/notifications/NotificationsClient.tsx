@@ -88,6 +88,8 @@ export default function NotificationsClient({ initialNotifications }: { initialN
     return true;
   });
 
+  const unreadCount = notifications.filter(n => !n.readStatus).length;
+
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case "bell":

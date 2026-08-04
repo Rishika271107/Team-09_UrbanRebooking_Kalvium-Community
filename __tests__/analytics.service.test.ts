@@ -21,6 +21,7 @@ describe('Analytics Service', () => {
     (prisma.rebookingEvent.count as any).mockResolvedValue(0);
 
     const result = await getDashboardAnalytics('user-empty');
+
     expect(result.summary.totalBookings).toBe(0);
     expect(result.summary.totalSpent).toBe(0);
     expect(result.summary.rebookPercentage).toBe(0);
@@ -55,23 +56,66 @@ describe('Analytics Service', () => {
         payment: null,
       },
     ];
+
     (prisma.booking.findMany as any).mockResolvedValue(bookings);
     (prisma.rebookingEvent.count as any).mockResolvedValue(1);
 
-    const result = await getDashboardAnalytics('user-1');
+    const result = await getDashboardAnalytics('u1');
 
     expect(result.summary.totalBookings).toBe(3);
     expect(result.summary.totalSpent).toBe(450);
-    expect(result.summary.rebookPercentage).toBe(33); // 1/3 = 33%
+    expect(result.summary.rebookPercentage).toBeCloseTo(33.33, 1);
 
-    // Status distribution: 2 COMPLETED, 1 PENDING
+    expect(result.serviceUsage.find(s => s.name === 'Plumbing')?.value).toBe(2);
+    expect(result.serviceUsage.find(s => s.name === 'Electrical')?.value).toBe(1);
+
     const completedEntry = result.bookingStatus.find(s => s.name === 'Completed');
     const pendingEntry = result.bookingStatus.find(s => s.name === 'Pending');
+
     expect(completedEntry?.value).toBe(2);
     expect(pendingEntry?.value).toBe(1);
+  });
 
-    // Service usage: Plumbing x2, Electrical x1
-    expect(result.serviceUsage[0].name).toBe('Plumbing');
-    expect(result.serviceUsage[0].value).toBe(2);
+  it('aggregates bookings into monthly, service-usage, and status breakdowns', async () => {
+    const now = new Date();
+
+    (prisma.booking.findMany as any).mockResolvedValue([
+      {
+        createdAt: now,
+        status: 'COMPLETED',
+        service: { name: 'AC Repair', price: 500 },
+        price: 500,
+        payment: null,
+      },
+      {
+        createdAt: now,
+        status: 'CONFIRMED',
+        service: { name: 'AC Repair', price: 500 },
+        price: 500,
+        payment: null,
+      },
+      {
+        createdAt: now,
+        status: 'COMPLETED',
+        service: { name: 'Plumbing', price: 300 },
+        price: 300,
+        payment: null,
+      },
+    ]);
+
+    (prisma.rebookingEvent.count as any).mockResolvedValue(1);
+
+    const result = await getDashboardAnalytics('u1');
+
+    expect(result.summary.totalBookings).toBe(3);
+    expect(result.summary.totalSpent).toBe(1300);
+
+    expect(
+      result.serviceUsage.find(s => s.name === 'AC Repair')?.value
+    ).toBe(2);
+
+    expect(
+      result.bookingStatus.find(s => s.name === 'Completed')?.value
+    ).toBe(2);
   });
 });

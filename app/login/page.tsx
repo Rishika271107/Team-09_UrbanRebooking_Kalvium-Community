@@ -27,7 +27,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-
   const {
     register,
     handleSubmit,
@@ -36,17 +35,12 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      rememberMe: false,
-    },
+    defaultValues: { email: "", password: "", rememberMe: false },
   });
-
   const rememberMe = watch("rememberMe");
 
   const onSubmit = async (data: LoginFormValues) => {
-    setServerError("");
+    setServerError(null);
     try {
       const result = await signIn("credentials", {
         redirect: false,
@@ -254,8 +248,6 @@ export default function LoginPage() {
                 Remember me on this device
               </span>
             </label>
-
-            {/* Use serverError consistently */}
 
             {/* Submit Button */}
             <button

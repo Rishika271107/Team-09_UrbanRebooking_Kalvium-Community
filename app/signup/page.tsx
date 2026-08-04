@@ -10,7 +10,6 @@ import InputField from "@/components/InputField";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { registerUser } from "@/lib/actions";
 
 const STATS = [
   { value: "1M+", label: "Happy customers" },
@@ -36,7 +35,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
   const router = useRouter();
-  const [serverError, setServerError] = useState("");
+  const [serverError, setServerError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const {
@@ -60,27 +59,41 @@ export default function SignupPage() {
   const agreeTerms = watch("agreeTerms");
 
   const onSubmit = async (data: SignupFormValues) => {
-    setServerError("");
-    const res = await registerUser({
-      fullName: data.fullName,
-      email: data.email,
-      phone: data.phone,
-      password: data.password,
-    });
+    setServerError(null);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          password: data.password,
+        }),
+      });
 
-    if (res.error) {
-      setServerError(res.error);
-    } else {
-      // Auto login
+      const resBody = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setServerError(resBody?.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+
+      setSubmitted(true);
+
+      // Auto sign-in right after account creation for a smoother flow.
       const signInResult = await signIn("credentials", {
-        redirect: false,
         email: data.email,
         password: data.password,
+        redirect: false,
       });
 
       if (signInResult && !signInResult.error) {
-        setSubmitted(true);
+        router.push("/dashboard");
+        router.refresh();
       }
+    } catch {
+      setServerError("Could not reach the server. Please check your connection and try again.");
     }
   };
 
@@ -150,8 +163,6 @@ export default function SignupPage() {
                 </label>
                 {errors.agreeTerms && <p className="text-xs text-red-500 mt-1.5 ml-7">{errors.agreeTerms.message}</p>}
               </div>
-
-              {/* formError removed, using serverError */}
 
               <button
                 type="submit"

@@ -52,30 +52,7 @@ export const addressSchema = z.object({
 });
 export type AddressInput = z.infer<typeof addressSchema>;
 
-// ── Payment ───────────────────────────────────────────────────────────────────
-
-export const paymentMethodSchema = z.object({
-  type: z.enum(["CREDIT_CARD", "DEBIT_CARD", "UPI"] as const, {
-    error: "Invalid payment type",
-  }),
-  label: z.string().min(1, "Label is required"),
-  last4: z.string().optional(),
-  upiId: z.string().optional(),
-});
-export type PaymentMethodInput = z.infer<typeof paymentMethodSchema>;
-
-// ── Rebook ────────────────────────────────────────────────────────────────────
-
-export const rebookSchema = z.object({
-  originalBookingId: z.string().min(1, "Original booking ID is required"),
-  date: z.string().min(1, "Date is required"),
-  time: z.string().min(1, "Time is required"),
-  addressId: z.string().min(1, "Address is required"),
-  paymentMethod: z.enum(["CREDIT_CARD", "DEBIT_CARD", "UPI", "CASH"] as const),
-});
-export type RebookInput = z.infer<typeof rebookSchema>;
-
-// ── Review ────────────────────────────────────────────────────────────────────
+// ── Review ───────────────────────────────────────────────────────────────────
 
 export const reviewSchema = z.object({
   bookingId: z.string().min(1),

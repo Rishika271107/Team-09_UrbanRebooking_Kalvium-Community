@@ -1,5 +1,6 @@
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getBookingById } from "@/services/booking.service";
 import { getUserNotifications } from "@/services/notification.service";
@@ -10,24 +11,24 @@ export default async function BookingConfirmationPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
+
   if (!session?.user?.id) {
     redirect("/login");
   }
 
-  const resolvedParams = await params;
-  const bookingId = resolvedParams.id;
+  const { id: bookingId } = await params;
 
-  const [booking, notifications] = await Promise.all([
-    getBookingById(bookingId),
-    getUserNotifications(session.user.id),
-  ]);
+  const booking = await getBookingById(bookingId);
 
   if (!booking || booking.userId !== session.user.id) {
     redirect("/dashboard");
   }
 
-  const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
+  const notifications = await getUserNotifications(session.user.id);
+  const unreadNotificationsCount = notifications.filter(
+    (n) => !n.readStatus
+  ).length;
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>

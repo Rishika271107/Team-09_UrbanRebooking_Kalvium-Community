@@ -1,60 +1,43 @@
 import { prisma } from "@/lib/prisma";
+import { PAGINATION } from "@/lib/constants";
 
 export async function globalSearch(query: string, userId?: string) {
-  if (!query || query.trim() === "") {
+  const term = query?.trim();
+  if (!term) {
     return { services: [], professionals: [], bookings: [] };
   }
 
-  const searchTerm = query.toLowerCase();
-
-  const services = await prisma.service.findMany({
-    where: {
-      OR: [
-        { name: { contains: searchTerm } },
-        { category: { contains: searchTerm } },
-      ],
-    },
-    take: 5,
-  });
-
-  const professionals = await prisma.professional.findMany({
-    where: {
-      OR: [
-        { user: { name: { contains: searchTerm } } },
-        { skills: { contains: searchTerm } },
-      ],
-    },
-    include: {
-      user: true,
-    },
-    take: 5,
-  });
-
-  let bookings: any[] = [];
-  if (userId) {
-    bookings = await prisma.booking.findMany({
+  const [services, professionals, bookings] = await Promise.all([
+    prisma.service.findMany({
       where: {
-        userId: userId,
         OR: [
-          { service: { name: { contains: searchTerm } } },
-          { professional: { user: { name: { contains: searchTerm } } } },
+          { name: { contains: term, mode: "insensitive" } },
+          { category: { contains: term, mode: "insensitive" } },
         ],
       },
-      include: {
-        service: true,
-        professional: {
-          include: {
-            user: true,
-          }
-        },
+      take: PAGINATION.SEARCH_RESULT_LIMIT,
+    }),
+    prisma.professional.findMany({
+      where: {
+        OR: [
+          { user: { name: { contains: term, mode: "insensitive" } } },
+          { skills: { has: term } },
+        ],
       },
-      take: 5,
-    });
-  }
+      include: { user: { select: { name: true } } },
+      take: PAGINATION.SEARCH_RESULT_LIMIT,
+    }),
+    userId
+      ? prisma.booking.findMany({
+          where: {
+            userId,
+            service: { name: { contains: term, mode: "insensitive" } },
+          },
+          include: { service: true, professional: { include: { user: { select: { name: true } } } } },
+          take: PAGINATION.SEARCH_RESULT_LIMIT,
+        })
+      : Promise.resolve([]),
+  ]);
 
-  return {
-    services,
-    professionals,
-    bookings,
-  };
+  return { services, professionals, bookings };
 }

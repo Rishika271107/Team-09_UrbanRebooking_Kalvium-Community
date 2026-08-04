@@ -13,10 +13,11 @@ import { updateProfile, updatePassword } from "@/app/actions/profile.actions";
 import {
   addAddressAction,
   deleteAddressAction,
+  setDefaultAddressAction,
 } from "@/app/actions/address.actions";
 import type { AddressStub } from "@/services/address.service";
 
-/* â”€â”€â”€ Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Schemas ──────────────────────────────────────────────────────── */
 const profileSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
   email: z.string().email("Invalid email address"),
@@ -42,7 +43,7 @@ const addressSchema = z.object({
   pincode: z.string().min(4, "Valid pincode is required"),
 });
 
-/* â”€â”€â”€ Static mock data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Static mock data ────────────────────────────────────────────── */
 const PREFERRED_PROFESSIONALS = [
   { initials: "AS", color: "bg-teal-100 text-teal-700", name: "Aarav Sharma", specialty: "Home Cleaning", rating: 4.9 },
   { initials: "PM", color: "bg-purple-100 text-purple-700", name: "Priya Menon", specialty: "Salon at Home", rating: 4.8 },
@@ -50,7 +51,7 @@ const PREFERRED_PROFESSIONALS = [
   { initials: "SI", color: "bg-blue-100 text-blue-700", name: "Sana Iqbal", specialty: "Massage Therapy", rating: 4.95 },
 ];
 
-/* â”€â”€â”€ Toggle switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Toggle switch ───────────────────────────────────────────────── */
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
   return (
     <button
@@ -69,7 +70,7 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void 
   );
 }
 
-/* â”€â”€â”€ Section card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Section card ────────────────────────────────────────────────── */
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`bg-white rounded-xl border border-slate-200 shadow-sm p-6 ${className}`}>
@@ -78,7 +79,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
   );
 }
 
-/* â”€â”€â”€ Input field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Input field ─────────────────────────────────────────────────── */
 function Field({
   label,
   error,
@@ -104,7 +105,7 @@ const inputCls =
 const readOnlyCls =
   "px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-400 bg-slate-50 cursor-not-allowed";
 
-/* â”€â”€â”€ Password modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Password modal ──────────────────────────────────────────────── */
 function PasswordModal({ onClose }: { onClose: () => void }) {
   const [isPending, startTransition] = useTransition();
   const [msg, setMsg] = useState("");
@@ -145,7 +146,7 @@ function PasswordModal({ onClose }: { onClose: () => void }) {
                 {...form.register(field)}
                 type="password"
                 className={inputCls}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="••••••••"
               />
             </Field>
           ))}
@@ -161,7 +162,7 @@ function PasswordModal({ onClose }: { onClose: () => void }) {
             disabled={isPending}
             className="mt-1 w-full py-2.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors disabled:opacity-60"
           >
-            {isPending ? "Updatingâ€¦" : "Update Password"}
+            {isPending ? "Updating…" : "Update Password"}
           </button>
         </form>
       </div>
@@ -169,7 +170,7 @@ function PasswordModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Main component ──────────────────────────────────────────────── */
 export default function ProfileClient({
   user,
   addresses: initialAddresses,
@@ -248,6 +249,14 @@ export default function ProfileClient({
     });
   };
 
+  const handleSetDefaultAddress = (id: string) => {
+    // Optimistic: this address becomes default, all others are not
+    setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
+    startAddrTransition(async () => {
+      await setDefaultAddressAction(id);
+    });
+  };
+
   /* Notification toggles */
   const [notifSettings, setNotifSettings] = useState({
     bookingUpdates: true,
@@ -308,7 +317,7 @@ export default function ProfileClient({
       )}
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* â”€â”€ LEFT COLUMN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── LEFT COLUMN ──────────────────────────────────────────── */}
         <div className="flex flex-col gap-6 flex-1 min-w-0">
 
           {/* Personal Information */}
@@ -385,7 +394,7 @@ export default function ProfileClient({
                   disabled={profilePending}
                   className="px-5 py-2.5 rounded-lg bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 transition-colors disabled:opacity-60"
                 >
-                  {profilePending ? "Savingâ€¦" : "Save changes"}
+                  {profilePending ? "Saving…" : "Save changes"}
                 </button>
                 <button
                   type="button"
@@ -429,12 +438,22 @@ export default function ProfileClient({
                       </div>
                       <p className="text-xs text-slate-500 truncate mt-0.5">{displayAddress}</p>
                     </div>
-                    <button
-                      onClick={() => handleDeleteAddress(addr.id)}
-                      className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {!addr.isDefault && (
+                        <button
+                          onClick={() => handleSetDefaultAddress(addr.id)}
+                          className="text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors whitespace-nowrap"
+                        >
+                          Set default
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteAddress(addr.id)}
+                        className="text-slate-300 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -471,7 +490,7 @@ export default function ProfileClient({
                     disabled={addrPending}
                     className="px-4 py-2 rounded-lg bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 transition-colors disabled:opacity-60"
                   >
-                    {addrPending ? "Savingâ€¦" : "Save address"}
+                    {addrPending ? "Saving…" : "Save address"}
                   </button>
                   <button
                     type="button"
@@ -513,7 +532,7 @@ export default function ProfileClient({
                     <div className="flex items-center gap-1 mt-0.5">
                       <Star size={11} className="text-amber-400 fill-amber-400" />
                       <span className="text-xs text-slate-500">
-                        {pro.rating} Â· {pro.specialty}
+                        {pro.rating} · {pro.specialty}
                       </span>
                     </div>
                   </div>
@@ -523,7 +542,7 @@ export default function ProfileClient({
           </Card>
         </div>
 
-        {/* â”€â”€ RIGHT SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── RIGHT SIDEBAR ────────────────────────────────────────── */}
         <div className="flex flex-col gap-6 w-full lg:w-72 flex-shrink-0">
 
           {/* Notification settings */}
