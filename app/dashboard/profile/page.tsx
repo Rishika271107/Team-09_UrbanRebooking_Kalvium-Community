@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getUserById } from "@/services/user.service";
 import { getUserNotifications } from "@/services/notification.service";
+import { getUserAddresses } from "@/services/address.service";
 import ProfileClient from "./ProfileClient";
 
 export default async function ProfilePage() {
@@ -11,11 +12,12 @@ export default async function ProfilePage() {
   if (!session?.user?.id) {
     redirect("/login");
   }
-
   const userId = session.user.id;
-  const [user, notifications] = await Promise.all([
+
+  const [user, notifications, addresses] = await Promise.all([
     getUserById(userId),
     getUserNotifications(userId),
+    getUserAddresses(userId),
   ]);
 
   if (!user) {
@@ -31,7 +33,7 @@ export default async function ProfilePage() {
           <h1 className="text-2xl font-bold text-slate-900">Profile Management</h1>
           <p className="text-slate-500">Manage your account settings and saved addresses.</p>
         </div>
-        <ProfileClient user={user} />
+        <ProfileClient user={user} addresses={addresses} />
       </div>
     </DashboardLayout>
   );

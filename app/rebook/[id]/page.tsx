@@ -17,10 +17,8 @@ export default async function RebookPage({
   if (!session?.user?.id) {
     redirect("/login");
   }
-
   const resolvedParams = await params;
   const bookingId = resolvedParams.id;
-
   const booking = await getBookingById(bookingId);
   if (!booking || booking.userId !== session.user.id) {
     redirect("/bookings");
@@ -28,10 +26,8 @@ export default async function RebookPage({
   if (booking.status !== "COMPLETED") {
     redirect(`/bookings/${bookingId}`);
   }
-
   const notifications = await getUserNotifications(session.user.id);
   const unreadNotificationsCount = notifications.filter((n) => !n.readStatus).length;
-
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>
       <div className="flex flex-col gap-8 pb-10">
@@ -52,7 +48,6 @@ export default async function RebookPage({
             </p>
           </div>
         </div>
-
         <div className="mx-auto w-full max-w-3xl">
           <RebookFormClient sourceBookingId={booking.id} serviceName={booking.service.name} />
         </div>

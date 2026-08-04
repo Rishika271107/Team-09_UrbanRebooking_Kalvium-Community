@@ -1,94 +1,181 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Check, Trash2, CheckCircle2 } from "lucide-react";
+import { Bell, Check, Trash2, CalendarHeart, Tag, CreditCard, CheckCheck } from "lucide-react";
 import { markAsReadAction, markAllAsReadAction, deleteNotificationAction, clearAllNotificationsAction } from "@/app/actions/notification.actions";
+import { EmptyState } from "@/components/EmptyState";
+
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  readStatus: boolean;
+  date: string;
+  iconName: string;
+};
+
+const MOCK_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: "n1",
+    type: "update",
+    title: "Booking confirmed",
+    message: "Your Home Cleaning is scheduled for Wednesday 10:00 AM.",
+    readStatus: false,
+    date: "17/07/2026",
+    iconName: "bell",
+  },
+  {
+    id: "n2",
+    type: "update",
+    title: "Rate your last service",
+    message: "How was your session with Sana Iqbal?",
+    readStatus: false,
+    date: "16/07/2026",
+    iconName: "calendar",
+  },
+  {
+    id: "n3",
+    type: "offer",
+    title: "20% off Salon at Home",
+    message: "Book by Sunday to save on your next appointment.",
+    readStatus: true,
+    date: "14/07/2026",
+    iconName: "tag",
+  },
+  {
+    id: "n4",
+    type: "payment",
+    title: "Payment received",
+    message: "Payment of $79 for booking #b-1005 confirmed.",
+    readStatus: true,
+    date: "15/07/2026",
+    iconName: "card",
+  },
+];
 
 export default function NotificationsClient({ initialNotifications }: { initialNotifications: any[] }) {
-  const [notifications, setNotifications] = useState(initialNotifications);
-  const [isLoading, setIsLoading] = useState(false);
+  // If the DB returns nothing, we use our mock data to show the layout
+  const [notifications, setNotifications] = useState<NotificationItem[]>(
+    initialNotifications.length > 0 ? initialNotifications : MOCK_NOTIFICATIONS
+  );
+  const [activeTab, setActiveTab] = useState("All");
 
   const handleMarkAsRead = async (id: string) => {
-    setIsLoading(true);
-    await markAsReadAction(id);
+    // Optimistic update
     setNotifications(notifications.map(n => n.id === id ? { ...n, readStatus: true } : n));
-    setIsLoading(false);
+    try { await markAsReadAction(id); } catch (e) {}
   };
 
   const handleMarkAllAsRead = async () => {
-    setIsLoading(true);
-    await markAllAsReadAction();
     setNotifications(notifications.map(n => ({ ...n, readStatus: true })));
-    setIsLoading(false);
+    try { await markAllAsReadAction(); } catch (e) {}
   };
 
   const handleDelete = async (id: string) => {
-    setIsLoading(true);
-    await deleteNotificationAction(id);
     setNotifications(notifications.filter(n => n.id !== id));
-    setIsLoading(false);
+    try { await deleteNotificationAction(id); } catch (e) {}
   };
 
-  const handleClearAll = async () => {
-    setIsLoading(true);
-    await clearAllNotificationsAction();
-    setNotifications([]);
-    setIsLoading(false);
-  };
+  const tabs = ["All", "Unread", "Updates", "Payments", "Offers"];
 
-  if (notifications.length === 0) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm border p-12 flex flex-col items-center justify-center text-center">
-        <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4">
-          <Bell size={32} />
-        </div>
-        <h3 className="text-lg font-medium text-slate-900 mb-1">No notifications</h3>
-        <p className="text-slate-500 max-w-sm">You don't have any notifications right now. Check back later for updates.</p>
-      </div>
-    );
-  }
+  const filteredNotifications = notifications.filter(n => {
+    if (activeTab === "All") return true;
+    if (activeTab === "Unread") return !n.readStatus;
+    if (activeTab === "Updates") return n.type === "update";
+    if (activeTab === "Payments") return n.type === "payment";
+    if (activeTab === "Offers") return n.type === "offer";
+    return true;
+  });
 
   const unreadCount = notifications.filter(n => !n.readStatus).length;
 
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case "bell":
+        return { icon: <Bell size={20} />, colors: "bg-emerald-50 text-emerald-600" };
+      case "calendar":
+        return { icon: <CalendarHeart size={20} />, colors: "bg-blue-50 text-blue-500" };
+      case "tag":
+        return { icon: <Tag size={20} />, colors: "bg-orange-50 text-orange-500" };
+      case "card":
+        return { icon: <CreditCard size={20} />, colors: "bg-emerald-50 text-emerald-600" };
+      default:
+        return { icon: <Bell size={20} />, colors: "bg-slate-100 text-slate-500" };
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-      <div className="p-4 border-b bg-slate-50 flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-600">
-          {unreadCount > 0 ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : "All caught up!"}
-        </span>
-        <div className="flex gap-4">
-          {unreadCount > 0 && (
-            <button onClick={handleMarkAllAsRead} disabled={isLoading} className="text-sm text-teal-600 font-medium hover:underline flex items-center gap-1">
-              <CheckCircle2 size={16} /> Mark all as read
+    <div className="bg-white rounded-xl shadow-sm border p-6">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-2">
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? "bg-slate-100 text-slate-900"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+              }`}
+            >
+              {tab}
             </button>
-          )}
-          <button onClick={handleClearAll} disabled={isLoading} className="text-sm text-slate-500 font-medium hover:text-red-500 flex items-center gap-1">
-            <Trash2 size={16} /> Clear all
-          </button>
+          ))}
         </div>
+        <button 
+          onClick={handleMarkAllAsRead} 
+          className="text-sm font-medium text-slate-700 flex items-center gap-2 hover:text-slate-900 transition-colors"
+        >
+          <CheckCheck size={16} /> Mark all read
+        </button>
       </div>
-      <div className="divide-y">
-        {notifications.map((n) => (
-          <div key={n.id} className={`p-4 flex gap-4 ${n.readStatus ? 'bg-white' : 'bg-teal-50/20'}`}>
-            <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${n.readStatus ? 'bg-transparent' : 'bg-teal-500'}`} />
-            <div className="flex-1">
-              <h4 className={`text-sm font-medium ${n.readStatus ? 'text-slate-700' : 'text-slate-900'}`}>{n.title}</h4>
-              <p className="text-sm text-slate-500 mt-1">{n.message}</p>
-              <p className="text-xs text-slate-400 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
-            </div>
-            <div className="flex flex-col gap-2">
-              {!n.readStatus && (
-                <button onClick={() => handleMarkAsRead(n.id)} className="text-teal-600 p-2 hover:bg-teal-50 rounded-lg" title="Mark as read">
-                  <Check size={18} />
-                </button>
-              )}
-              <button onClick={() => handleDelete(n.id)} className="text-slate-400 p-2 hover:bg-red-50 hover:text-red-500 rounded-lg" title="Delete">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+
+      {filteredNotifications.length === 0 ? (
+        <EmptyState
+          type="no-notifications"
+          variant="card"
+          description={
+            activeTab === "Unread"
+              ? "You have no unread notifications. You're all caught up!"
+              : `No ${activeTab.toLowerCase()} notifications yet.`
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-6">
+          {filteredNotifications.map((n) => {
+            const { icon, colors } = getIcon(n.iconName);
+            return (
+              <div key={n.id} className="flex gap-4">
+                <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center ${colors}`}>
+                  {icon}
+                </div>
+                
+                <div className="flex flex-1 justify-between">
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span className="font-bold text-slate-900">{n.title}</span>
+                    <span className="text-sm text-slate-500">{n.message}</span>
+                  </div>
+                  
+                  <div className="flex flex-col items-end justify-between">
+                    <span className="text-xs text-slate-400 mt-1">{n.date}</span>
+                    <div className="flex items-center gap-4 mt-2">
+                      {!n.readStatus && (
+                        <button onClick={() => handleMarkAsRead(n.id)} className="text-slate-600 hover:text-slate-900 transition-colors">
+                          <Check size={18} />
+                        </button>
+                      )}
+                      <button onClick={() => handleDelete(n.id)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

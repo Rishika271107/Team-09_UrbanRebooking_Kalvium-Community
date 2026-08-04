@@ -21,6 +21,7 @@ function todayISODate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/* ── Main Component ─────────────────────────────────────────────────── */
 export default function RebookFormClient({
   sourceBookingId,
   serviceName,

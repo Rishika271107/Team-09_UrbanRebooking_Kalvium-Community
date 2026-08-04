@@ -197,14 +197,13 @@ export default function LoginPage() {
                 <label htmlFor="password" className="text-sm font-medium text-slate-700">
                   Password
                 </label>
-                <button
-                  type="button"
-                  onClick={() => alert("Forgot password (placeholder)")}
+                <Link
+                  href="/forgot-password"
                   className="hover:underline focus:outline-none"
                   style={{ fontSize: "14px", color: "#00897B" }}
                 >
                   Forgot password?
-                </button>
+                </Link>
               </div>
               <div className="relative">
                 <input
@@ -235,9 +234,9 @@ export default function LoginPage() {
 
             {/* Remember Me */}
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input id="rememberMe" type="checkbox" {...register("rememberMe")} className="sr-only peer" />
               <div
                 className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${rememberMe ? "bg-[#00897B] border-[#00897B]" : "border-slate-300 bg-white"}`}
-                onClick={() => setValue("rememberMe", !rememberMe)}
               >
                 {rememberMe && (
                   <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

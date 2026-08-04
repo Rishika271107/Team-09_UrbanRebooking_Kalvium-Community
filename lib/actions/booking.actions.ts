@@ -10,7 +10,8 @@ const rebookSchema = z.object({
   originalBookingId: z.string().min(1, "Original booking ID is required"),
   date: z.string().min(1, "Date is required"),
   time: z.string().min(1, "Time is required"),
-  addressId: z.string().min(1, "Address is required"),
+  addressId: z.string().min(5, "Address is required"),
+  phone: z.string().min(10, "Phone number is required"),
   paymentMethod: z.enum(["CREDIT_CARD", "DEBIT_CARD", "UPI", "CASH"]),
 });
 
@@ -29,7 +30,7 @@ export async function rebookAction(formData: FormData) {
       return { error: parsed.error.issues[0].message };
     }
 
-    const { originalBookingId, date, time, addressId, paymentMethod } = parsed.data;
+    const { originalBookingId, date, time, addressId, phone, paymentMethod } = parsed.data;
 
     const originalBooking = await getBookingById(originalBookingId);
     if (!originalBooking) {
@@ -46,6 +47,7 @@ export async function rebookAction(formData: FormData) {
       serviceId: originalBooking.serviceId,
       professionalId: originalBooking.professionalId || "",
       addressId,
+      phone,
       date,
       time,
       paymentMethod,

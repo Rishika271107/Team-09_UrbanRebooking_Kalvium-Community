@@ -1,13 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CalendarCheck, Clock, Settings, MapPin, type LucideIcon } from "lucide-react";
+import { CalendarCheck, TrendingUp, Repeat, MapPin, type LucideIcon } from "lucide-react";
 
 export interface StatisticProps {
   id: string;
   title: string;
   value: string | number;
-  description: string;
   icon: string;
 }
 
@@ -18,8 +17,8 @@ interface StatsCardProps {
 
 const ICON_MAP: Record<string, LucideIcon> = {
   CalendarCheck,
-  Clock,
-  Settings,
+  TrendingUp,
+  Repeat,
   MapPin,
 };
 
@@ -28,22 +27,19 @@ export function StatsCard({ stat, index }: StatsCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      whileHover={{ y: -4 }}
-      className="rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+      transition={{ delay: index * 0.05 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-slate-500">{stat.title}</span>
-          <span className="text-3xl font-bold text-slate-900">{stat.value}</span>
-        </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
-          <Icon size={24} />
-        </div>
+      <div className="flex items-start justify-between">
+        <span className="text-sm font-medium text-slate-500">{stat.title}</span>
+        <Icon size={18} className="text-[#047260]" />
       </div>
-      <div className="mt-4 text-sm text-slate-600">{stat.description}</div>
+      <div className="mt-4">
+        <span className="text-3xl font-bold text-slate-900">{stat.value}</span>
+      </div>
     </motion.div>
   );
 }

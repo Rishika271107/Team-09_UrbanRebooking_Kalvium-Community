@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Home, Scissors, Wind, Zap, Droplets, Paintbrush, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 
 export interface CategoryProps {
   id: string;
@@ -40,7 +41,7 @@ export function ServiceCategoryCard({ category }: ServiceCategoryCardProps) {
       </div>
       <div className="flex flex-col gap-1">
         <span className="font-semibold text-slate-900">{category.name}</span>
-        <span className="text-xs text-slate-500">From ${category.startingPrice}</span>
+        <span className="text-xs text-slate-500">From {formatCurrency(category.startingPrice)}</span>
       </div>
     </motion.div>
   );

@@ -8,6 +8,7 @@ import { getReviewForBooking } from "@/services/review.service";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Clock, MapPin, RotateCw, Star } from "lucide-react";
 import ReviewSection from "@/components/dashboard/ReviewSection";
+import { formatCurrency } from "@/lib/format";
 
 const STATUS_STYLES: Record<string, string> = {
   COMPLETED: "bg-emerald-50 text-emerald-700",
@@ -123,12 +124,12 @@ export default async function BookingDetailsPage({
 
               <div className="flex items-center justify-between">
                 <span className="text-slate-600">Service Fee</span>
-                <span className="font-medium text-slate-900">${booking.service.price.toFixed(2)}</span>
+                <span className="font-medium text-slate-900">{formatCurrency(booking.service.price)}</span>
               </div>
 
               <div className="flex items-center justify-between border-t pt-4 mt-2">
                 <span className="font-bold text-slate-900">Total</span>
-                <span className="font-bold text-teal-700 text-xl">${booking.service.price.toFixed(2)}</span>
+                <span className="font-bold text-teal-700 text-xl">{formatCurrency(booking.service.price)}</span>
               </div>
             </div>
           </div>

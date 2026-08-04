@@ -5,18 +5,23 @@ import { createNotification } from "@/services/notification.service";
 
 export async function POST(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { session, error } = await requireSession();
   if (error) return error;
 
-  const { id } = await context.params;
+  const { id } = await params;
 
   try {
-    const booking = await prisma.booking.findUnique({ where: { id } });
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+    });
 
     if (!booking || booking.userId !== session.user.id) {
-      return NextResponse.json({ error: "Booking not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Booking not found." },
+        { status: 404 }
+      );
     }
 
     if (!["DRAFT", "PENDING", "CONFIRMED"].includes(booking.status)) {
@@ -29,13 +34,19 @@ export async function POST(
     const cancelled = await prisma.$transaction(async (tx) => {
       const updated = await tx.booking.update({
         where: { id },
-        data: { status: "CANCELLED" },
+        data: {
+          status: "CANCELLED",
+        },
       });
 
-      // Free up the calendar slot, if one was reserved for this booking.
       await tx.calendarSlot.updateMany({
-        where: { bookingId: id },
-        data: { slotType: "AVAILABLE", bookingId: null },
+        where: {
+          bookingId: id,
+        },
+        data: {
+          slotType: "AVAILABLE",
+          bookingId: null,
+        },
       });
 
       return updated;
@@ -47,9 +58,19 @@ export async function POST(
       `Your booking for ${new Date().toLocaleDateString()} has been cancelled.`
     );
 
-    return NextResponse.json({ booking: cancelled });
+    return NextResponse.json({
+      booking: cancelled,
+    });
   } catch (err) {
     console.error("Cancel booking error:", err);
-    return NextResponse.json({ error: "Failed to cancel the booking." }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: "Failed to cancel the booking.",
+      },
+      {
+        status: 500,
+      }
+    );
   }
 }

@@ -6,6 +6,7 @@ interface RebookParams {
   serviceId: string;
   professionalId: string;
   addressId: string;
+  phone: string;
   date: string;
   time: string;
   paymentMethod: string;
@@ -19,6 +20,14 @@ export async function processRebook(params: RebookParams) {
 
   // Use Prisma transaction to guarantee all inserts succeed or fail together
   return await prisma.$transaction(async (tx) => {
+    // 0. Update user's phone number
+    if (params.phone) {
+      await tx.user.update({
+        where: { id: params.userId },
+        data: { phone: params.phone }
+      });
+    }
+
     // 1. Create the new booking sourced from the original
     const newBooking = await tx.booking.create({
       data: {

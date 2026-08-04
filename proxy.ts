@@ -46,5 +46,6 @@ export const config = {
     "/rebook/:path*",
     "/api/auth/callback/credentials",
     "/api/auth/register",
+    "/forgot-password",
   ],
 };
