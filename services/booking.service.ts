@@ -1,94 +1,28 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getUserBookings(userId: string) {
-  return await prisma.booking.findMany({
-    where: { userId },
-    include: {
-      service: true,
-      professional: {
-        include: { user: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-}
+const bookingInclude = {
+  service: true,
+  professional: { include: { user: { select: { name: true } } } },
+} as const;
 
-export async function getUpcomingBooking(userId: string) {
-  return await prisma.booking.findFirst({
-    where: {
-      userId,
-      status: "CONFIRMED",
-    },
-    include: {
-      service: true,
-      professional: {
-        include: { user: true },
-      },
-    },
-    orderBy: { slotStart: "asc" },
-  });
-}
+export async function getUserBookingsPaginated(userId: string, skip = 0, take = 10) {
+  const [bookings, total] = await Promise.all([
+    prisma.booking.findMany({
+      where: { userId },
+      include: bookingInclude,
+      orderBy: [{ slotStart: "desc" }, { createdAt: "desc" }],
+      skip,
+      take,
+    }),
+    prisma.booking.count({ where: { userId } }),
+  ]);
 
-export async function getQuickRebookBookings(userId: string) {
-  return await prisma.booking.findMany({
-    where: {
-      userId,
-      status: "COMPLETED",
-    },
-    include: {
-      service: true,
-      professional: {
-        include: { user: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 4,
-  });
-}
-
-export async function getUpcomingServicesList(userId: string) {
-  return await prisma.booking.findMany({
-    where: {
-      userId,
-      status: "CONFIRMED",
-    },
-    include: {
-      service: true,
-      professional: {
-        include: { user: true },
-      },
-    },
-    orderBy: { slotStart: "asc" },
-  });
+  return { bookings, total };
 }
 
 export async function getBookingById(id: string) {
-  return await prisma.booking.findUnique({
+  return prisma.booking.findUnique({
     where: { id },
-    include: {
-      service: true,
-      professional: {
-        include: { user: true },
-      },
-    },
-  });
-}
-
-export async function getUserBookingsPaginated(
-  userId: string,
-  skip: number = 0,
-  take: number = 10
-) {
-  return await prisma.booking.findMany({
-    where: { userId },
-    include: {
-      service: true,
-      professional: {
-        include: { user: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    skip,
-    take,
+    include: bookingInclude,
   });
 }

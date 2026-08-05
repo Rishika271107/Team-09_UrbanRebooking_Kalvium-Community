@@ -13,11 +13,9 @@ vi.mock('../lib/prisma', () => ({
     notification: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
-      update: vi.fn(),
       updateMany: vi.fn(),
-      delete: vi.fn(),
       deleteMany: vi.fn(),
-      create: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }));
@@ -34,7 +32,9 @@ const mockNotification = {
 };
 
 describe('Notification Service', () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
 
   it('getUserNotifications: returns empty array when no notifications', async () => {
     (prisma.notification.findMany as any).mockResolvedValue([]);

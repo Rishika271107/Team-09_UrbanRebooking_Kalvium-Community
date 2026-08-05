@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { createNotification } from "@/services/notification.service";
 
-export async function PATCH(
+export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -12,35 +13,64 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    // Verify booking belongs to this user and is cancellable
-    const booking = await prisma.booking.findUnique({ where: { id } });
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+    });
 
-    if (!booking) {
-      return NextResponse.json({ error: "Booking not found." }, { status: 404 });
-    }
-
-    if (booking.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-    }
-
-    if (booking.status !== "CONFIRMED" && booking.status !== "PENDING") {
+    if (!booking || booking.userId !== session.user.id) {
       return NextResponse.json(
-        { error: "Only upcoming bookings can be cancelled." },
+        { error: "Booking not found." },
+        { status: 404 }
+      );
+    }
+
+    if (!["DRAFT", "PENDING", "CONFIRMED"].includes(booking.status)) {
+      return NextResponse.json(
+        { error: "This booking can no longer be cancelled." },
         { status: 400 }
       );
     }
 
-    const updated = await prisma.booking.update({
-      where: { id },
-      data: { status: "CANCELLED" },
+    const cancelled = await prisma.$transaction(async (tx) => {
+      const updated = await tx.booking.update({
+        where: { id },
+        data: {
+          status: "CANCELLED",
+        },
+      });
+
+      await tx.calendarSlot.updateMany({
+        where: {
+          bookingId: id,
+        },
+        data: {
+          slotType: "AVAILABLE",
+          bookingId: null,
+        },
+      });
+
+      return updated;
     });
 
-    return NextResponse.json({ booking: updated });
+    await createNotification(
+      session.user.id,
+      "Booking cancelled",
+      `Your booking for ${new Date().toLocaleDateString()} has been cancelled.`
+    );
+
+    return NextResponse.json({
+      booking: cancelled,
+    });
   } catch (err) {
     console.error("Cancel booking error:", err);
+
     return NextResponse.json(
-      { error: "Failed to cancel booking." },
-      { status: 500 }
+      {
+        error: "Failed to cancel the booking.",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

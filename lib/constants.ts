@@ -4,23 +4,17 @@
  */
 
 // ── Booking Status ────────────────────────────────────────────────────────────
+// Mirrors the BookingStatus enum in prisma/schema.prisma.
 export const BOOKING_STATUS = {
-  UPCOMING: "UPCOMING",
+  DRAFT: "DRAFT",
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
   COMPLETED: "COMPLETED",
   CANCELLED: "CANCELLED",
+  DISPUTED: "DISPUTED",
 } as const;
 
 export type BookingStatus = keyof typeof BOOKING_STATUS;
-
-// ── Payment Methods ───────────────────────────────────────────────────────────
-export const PAYMENT_METHOD = {
-  CREDIT_CARD: "CREDIT_CARD",
-  DEBIT_CARD: "DEBIT_CARD",
-  UPI: "UPI",
-  CASH: "CASH",
-} as const;
-
-export type PaymentMethod = keyof typeof PAYMENT_METHOD;
 
 // ── Notification ──────────────────────────────────────────────────────────────
 export const NOTIFICATION_DEFAULTS = {

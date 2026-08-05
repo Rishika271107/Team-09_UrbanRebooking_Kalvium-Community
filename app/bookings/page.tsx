@@ -1,17 +1,18 @@
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getUserNotifications } from "@/services/notification.service";
 import BookingHistoryClient from "./BookingHistoryClient";
 
-export default async function BookingHistoryPage() {
-  const session = await auth();
+export default async function BookingsPage() {
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/login");
   }
 
   const notifications = await getUserNotifications(session.user.id);
-  const unreadCount = notifications.filter((n: any) => !n.readStatus).length;
+  const unreadCount = notifications.filter((n) => !n.readStatus).length;
 
   return (
     <DashboardLayout notificationCount={unreadCount}>
