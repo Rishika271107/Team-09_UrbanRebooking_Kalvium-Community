@@ -190,3 +190,30 @@ model RebookingEvent {
 
   @@index([sourceBookingId])
 }
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String
+  title      String
+  message    String
+  readStatus Boolean  @default(false)
+  iconName   String   @default("bell")
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PaymentMethod {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardType   String
+  lastFour   String
+  provider   String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}

@@ -461,33 +461,35 @@ export default function BookingHistoryClient() {
       <div className="flex flex-col gap-6">
         
         {/* ── Filters & Search Bar ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             
             {/* Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar flex-1">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
-                    activeTab === tab.key
-                      ? "bg-[#047260] text-white"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                  }`}
-                >
-                  {tab.label}
-                  {!isLoading && counts[tab.key] > 0 && activeTab !== tab.key && (
-                    <span className="ml-1.5 text-xs font-medium opacity-60 bg-slate-200 px-1.5 py-0.5 rounded-full">
-                      {counts[tab.key]}
-                    </span>
-                  )}
-                </button>
-              ))}
+            <div className="-mx-3 sm:-mx-4 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1 px-3 sm:px-4 pb-1 min-w-max">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors ${
+                      activeTab === tab.key
+                        ? "bg-[#047260] text-white"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                    }`}
+                  >
+                    {tab.label}
+                    {!isLoading && counts[tab.key] > 0 && activeTab !== tab.key && (
+                      <span className="ml-1.5 text-xs font-medium opacity-60 bg-slate-200 px-1.5 py-0.5 rounded-full">
+                        {counts[tab.key]}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Search */}
-            <div className="relative w-full md:w-64">
+            <div className="relative w-full sm:w-64 shrink-0">
               <Search
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -502,7 +504,7 @@ export default function BookingHistoryClient() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 border-t border-slate-100 pt-4 overflow-x-auto no-scrollbar">
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
             {/* Sort Filter */}
             <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 flex-shrink-0">
               <ArrowUpDown size={14} className="text-slate-400 mr-2" />
@@ -679,11 +681,11 @@ export default function BookingHistoryClient() {
 
         {/* ── Pagination ── */}
         {!isLoading && filteredAndSorted.length > PAGE_SIZE && (
-          <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-            <span className="text-sm font-medium text-slate-600">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <span className="text-sm font-medium text-slate-600 text-center sm:text-left">
               Showing {Math.min((page - 1) * PAGE_SIZE + 1, filteredAndSorted.length)} to {Math.min(page * PAGE_SIZE, filteredAndSorted.length)} of {filteredAndSorted.length}
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}

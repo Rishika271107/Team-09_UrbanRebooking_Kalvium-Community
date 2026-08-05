@@ -289,6 +289,7 @@ export default function ProfileClient({
 
   return (
     <>
+      {showAddPaymentModal && <AddPaymentModal onClose={() => setShowAddPaymentModal(false)} onAdd={handleAddPayment} />}
       {showPasswordModal && <PasswordModal onClose={() => setShowPasswordModal(false)} />}
 
       {showDeactivateConfirm && (
@@ -510,6 +511,31 @@ export default function ProfileClient({
               >
                 <Plus size={15} /> Add new address
               </button>
+            )}
+          </Card>
+
+          {/* Payment Methods */}
+          <Card>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Payment methods</h2>
+            
+            {isPaymentsLoading ? (
+              <PaymentSkeleton />
+            ) : paymentMethods.length === 0 ? (
+              <PaymentEmptyState onAddPayment={() => setShowAddPaymentModal(true)} />
+            ) : (
+              <>
+                <PaymentList 
+                  methods={paymentMethods} 
+                  onDelete={handleDeletePayment} 
+                  onSetDefault={handleSetDefaultPayment} 
+                />
+                <button
+                  onClick={() => setShowAddPaymentModal(true)}
+                  className="mt-4 w-full py-2.5 rounded-lg border border-dashed border-slate-300 text-sm font-medium text-slate-500 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Plus size={15} /> Add new payment method
+                </button>
+              </>
             )}
           </Card>
 

@@ -46,7 +46,8 @@ export function QuickRebookCard({ item }: QuickRebookCardProps) {
         {item.professionalAvatar && item.professionalAvatar !== "" ? (
           <img
             src={item.professionalAvatar}
-            alt={item.professionalName}
+            alt=""
+            aria-hidden="true"
             className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-50 object-cover"
           />
         ) : (
