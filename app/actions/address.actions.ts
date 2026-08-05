@@ -1,15 +1,28 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { createAddress, updateAddress, deleteAddress, setDefaultAddress } from "@/services/address.service";
-import { auth } from "@/auth";
 
-export async function addAddressAction(data: { addressLine: string; city: string; state: string; pincode: string; isDefault?: boolean }) {
+interface AddressData {
+  addressLine: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault?: boolean;
+}
+
+async function requireUserId() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  return session.user.id;
+}
+
+export async function addAddressAction(data: AddressData) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await createAddress(session.user.id, data);
+    const userId = await requireUserId();
+    await createAddress(userId, data);
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
@@ -17,12 +30,10 @@ export async function addAddressAction(data: { addressLine: string; city: string
   }
 }
 
-export async function updateAddressAction(id: string, data: { addressLine: string; city: string; state: string; pincode: string; isDefault?: boolean }) {
+export async function updateAddressAction(id: string, data: AddressData) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await updateAddress(id, session.user.id, data);
+    const userId = await requireUserId();
+    await updateAddress(id, userId, data);
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
@@ -32,10 +43,8 @@ export async function updateAddressAction(id: string, data: { addressLine: strin
 
 export async function deleteAddressAction(id: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await deleteAddress(id, session.user.id);
+    const userId = await requireUserId();
+    await deleteAddress(id, userId);
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {
@@ -45,10 +54,8 @@ export async function deleteAddressAction(id: string) {
 
 export async function setDefaultAddressAction(id: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await setDefaultAddress(id, session.user.id);
+    const userId = await requireUserId();
+    await setDefaultAddress(id, userId);
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {

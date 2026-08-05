@@ -48,7 +48,7 @@ async function main() {
     update: {},
     create: {
       userId: proUser.id,
-      skills: "AC Repair, Deep Cleaning, Plumbing",
+      skills: ["AC Repair", "Deep Cleaning", "Plumbing"],
       active: true,
       rating: 4.8,
     },
@@ -120,6 +120,34 @@ async function main() {
       id: "seed-rebooking-event-1",
       sourceBookingId: "seed-booking-completed-1",
       outcome: "SUCCESS",
+    },
+  });
+
+  // Sample saved address + a welcome notification, so the profile and
+  // notifications pages have real data on first login.
+  await prisma.address.upsert({
+    where: { id: "seed-address-1" },
+    update: {},
+    create: {
+      id: "seed-address-1",
+      userId: customer.id,
+      addressLine: "12 MG Road",
+      city: "Bengaluru",
+      state: "Karnataka",
+      pincode: "560001",
+      isDefault: true,
+    },
+  });
+
+  await prisma.notification.upsert({
+    where: { id: "seed-notification-1" },
+    update: {},
+    create: {
+      id: "seed-notification-1",
+      userId: customer.id,
+      title: "Welcome to Urban Company",
+      message: "Your account is set up. Book a service to get started.",
+      readStatus: false,
     },
   });
 

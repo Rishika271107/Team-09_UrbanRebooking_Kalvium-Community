@@ -108,13 +108,22 @@ export default function NotificationsClient() {
     return true;
   });
 
-  const formattedNotifications = filteredNotifications.map(n => {
-    const d = new Date(n.createdAt);
-    return {
-      ...n,
-      date: d.toLocaleDateString("en-GB", { day: 'numeric', month: 'short', year: 'numeric' })
-    };
-  });
+  const unreadCount = notifications.filter(n => !n.readStatus).length;
+
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case "bell":
+        return { icon: <Bell size={20} />, colors: "bg-emerald-50 text-emerald-600" };
+      case "calendar":
+        return { icon: <CalendarHeart size={20} />, colors: "bg-blue-50 text-blue-500" };
+      case "tag":
+        return { icon: <Tag size={20} />, colors: "bg-orange-50 text-orange-500" };
+      case "card":
+        return { icon: <CreditCard size={20} />, colors: "bg-emerald-50 text-emerald-600" };
+      default:
+        return { icon: <Bell size={20} />, colors: "bg-slate-100 text-slate-500" };
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border p-6">

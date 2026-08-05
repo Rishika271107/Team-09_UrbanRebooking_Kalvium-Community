@@ -1,15 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, clearAllNotifications } from "@/services/notification.service";
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import {
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  clearAllNotifications,
+} from "@/services/notification.service";
+
+async function requireUserId() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  return session.user.id;
+}
 
 export async function markAsReadAction(id: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await markNotificationAsRead(id, session.user.id);
+    const userId = await requireUserId();
+    await markNotificationAsRead(id, userId);
     revalidatePath("/dashboard/notifications");
     return { success: true };
   } catch (error) {
@@ -19,10 +29,8 @@ export async function markAsReadAction(id: string) {
 
 export async function markAllAsReadAction() {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await markAllNotificationsAsRead(session.user.id);
+    const userId = await requireUserId();
+    await markAllNotificationsAsRead(userId);
     revalidatePath("/dashboard/notifications");
     return { success: true };
   } catch (error) {
@@ -32,10 +40,8 @@ export async function markAllAsReadAction() {
 
 export async function deleteNotificationAction(id: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await deleteNotification(id, session.user.id);
+    const userId = await requireUserId();
+    await deleteNotification(id, userId);
     revalidatePath("/dashboard/notifications");
     return { success: true };
   } catch (error) {
@@ -45,10 +51,8 @@ export async function deleteNotificationAction(id: string) {
 
 export async function clearAllNotificationsAction() {
   try {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    await clearAllNotifications(session.user.id);
+    const userId = await requireUserId();
+    await clearAllNotifications(userId);
     revalidatePath("/dashboard/notifications");
     return { success: true };
   } catch (error) {

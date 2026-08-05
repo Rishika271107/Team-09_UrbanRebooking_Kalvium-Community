@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { confirmBookingSchema } from "@/lib/validations";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { createNotification } from "@/services/notification.service";
 
 class SlotUnavailableError extends Error {}
 class ProfessionalUnavailableError extends Error {}
@@ -10,6 +12,17 @@ class ProfessionalUnavailableError extends Error {}
 export async function POST(req: NextRequest) {
   const { session, error } = await requireSession();
   if (error) return error;
+
+  const rateLimit = checkRateLimit(`bookings:confirm:${session.user.id}`, {
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many booking attempts. Please try again in a minute." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
 
   const body = await req.json().catch(() => null);
   if (!body) {
@@ -127,6 +140,12 @@ export async function POST(req: NextRequest) {
         return updated;
       },
       { timeout: 10_000, maxWait: 5_000 }
+    );
+
+    await createNotification(
+      session.user.id,
+      "Booking confirmed",
+      `Your ${confirmedBooking.service.name} booking is confirmed for ${start.toLocaleString()}.`
     );
 
     return NextResponse.json({ booking: confirmedBooking }, { status: 200 });
