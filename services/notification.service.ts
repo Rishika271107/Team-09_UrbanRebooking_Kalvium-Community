@@ -1,44 +1,71 @@
 import { prisma } from "@/lib/prisma";
 
-/**
- * Notification model does not exist in the current schema.
- * These functions stub the interface to prevent build errors while keeping
- * call-sites intact. Notifications can be surfaced via RebookingEvent instead.
- */
-
 export type NotificationStub = {
   id: string;
   userId: string;
+  type: string;
   title: string;
   message: string;
   readStatus: boolean;
+  iconName: string;
   createdAt: Date;
 };
 
-export async function getUserNotifications(_userId: string): Promise<NotificationStub[]> {
-  return [];
+export async function getUserNotifications(userId: string): Promise<NotificationStub[]> {
+  return prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
-export async function markNotificationAsRead(_id: string, _userId: string): Promise<NotificationStub | null> {
-  return null;
+export async function markNotificationAsRead(id: string, userId: string): Promise<NotificationStub | null> {
+  const notification = await prisma.notification.findUnique({ where: { id } });
+  if (!notification || notification.userId !== userId) return null;
+
+  return prisma.notification.update({
+    where: { id },
+    data: { readStatus: true },
+  });
 }
 
-export async function markAllNotificationsAsRead(_userId: string): Promise<{ count: number }> {
-  return { count: 0 };
+export async function markAllNotificationsAsRead(userId: string): Promise<{ count: number }> {
+  const result = await prisma.notification.updateMany({
+    where: { userId, readStatus: false },
+    data: { readStatus: true },
+  });
+  return { count: result.count };
 }
 
-export async function deleteNotification(_id: string, _userId: string): Promise<NotificationStub | null> {
-  return null;
+export async function deleteNotification(id: string, userId: string): Promise<NotificationStub | null> {
+  const notification = await prisma.notification.findUnique({ where: { id } });
+  if (!notification || notification.userId !== userId) return null;
+
+  return prisma.notification.delete({
+    where: { id },
+  });
 }
 
-export async function clearAllNotifications(_userId: string): Promise<{ count: number }> {
-  return { count: 0 };
+export async function clearAllNotifications(userId: string): Promise<{ count: number }> {
+  const result = await prisma.notification.deleteMany({
+    where: { userId },
+  });
+  return { count: result.count };
 }
 
 export async function createNotification(
-  _userId: string,
-  _title: string,
-  _message: string
+  userId: string,
+  title: string,
+  message: string,
+  type: string = "update",
+  iconName: string = "bell"
 ): Promise<NotificationStub | null> {
-  return null;
+  return prisma.notification.create({
+    data: {
+      userId,
+      title,
+      message,
+      type,
+      iconName,
+    },
+  });
 }

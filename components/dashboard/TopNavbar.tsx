@@ -74,9 +74,9 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
   }, [query]);
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b bg-white px-4 md:px-6 shadow-sm">
-      <div className="flex flex-1 items-center gap-4 md:w-96 md:flex-none">
-        <div ref={searchRef} className="relative w-full max-w-md">
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b bg-white px-3 sm:px-4 md:px-6 shadow-sm gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4 md:w-96 md:flex-none">
+        <div ref={searchRef} className="relative w-full max-w-[160px] sm:max-w-xs md:max-w-md">
           <label htmlFor="top-search" className="sr-only">Search</label>
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" aria-hidden="true" />
           <input
@@ -114,9 +114,12 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
                             key={idx}
                             type="button"
                             onClick={() => setQuery(term)}
-                            className="flex items-center gap-2 text-left w-full text-sm text-slate-700 hover:bg-slate-50 px-2 py-1.5 rounded-lg transition-colors"
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setQuery(term); }}
+                            className="flex items-center gap-2 text-left w-full text-sm text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 px-2 py-1.5 rounded-lg transition-colors"
+                            role="option"
+                            aria-selected="false"
                           >
-                            <Search className="h-3.5 w-3.5 text-slate-400" />
+                            <Search className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
                             {term}
                           </button>
                         ))}
@@ -135,7 +138,15 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
                             setQuery(term);
                             saveSearch(term);
                           }}
-                          className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-teal-50 hover:text-[#047260] text-slate-650 rounded-full transition-colors border border-transparent hover:border-teal-200"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              setQuery(term);
+                              saveSearch(term);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-teal-50 focus:bg-teal-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 hover:text-[#047260] text-slate-650 rounded-full transition-colors border border-transparent hover:border-teal-200"
+                          role="option"
+                          aria-selected="false"
                         >
                           {term}
                         </button>
@@ -157,7 +168,7 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
                     <div className="mb-2">
                       <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Services</div>
                       {results.services.map((s: any) => (
-                        <div key={s.id} role="option" aria-selected="false" tabIndex={0} onClick={() => setQuery(s.name)} className="px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none rounded-lg cursor-pointer">
+                        <div key={s.id} role="option" aria-selected="false" tabIndex={0} onClick={() => setQuery(s.name)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setQuery(s.name); }} className="px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg cursor-pointer">
                           <div className="text-sm font-medium text-slate-900">{s.name}</div>
                           <div className="text-xs text-slate-600">{s.category}</div>
                         </div>
@@ -169,7 +180,7 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
                     <div className="mb-2">
                       <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Professionals</div>
                       {results.professionals.map((p: any) => (
-                        <div key={p.id} role="option" aria-selected="false" tabIndex={0} onClick={() => setQuery(p.name)} className="px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none rounded-lg cursor-pointer flex items-center gap-2">
+                        <div key={p.id} role="option" aria-selected="false" tabIndex={0} onClick={() => setQuery(p.name)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setQuery(p.name); }} className="px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg cursor-pointer flex items-center gap-2">
                           <img src={p.avatar} alt="" className="w-6 h-6 rounded-full" aria-hidden="true" />
                           <div>
                             <div className="text-sm font-medium text-slate-900">{p.name}</div>
@@ -184,7 +195,7 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
                     <div>
                       <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Bookings</div>
                       {results.bookings.map((b: any) => (
-                        <div key={b.id} role="option" aria-selected="false" tabIndex={0} className="px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none rounded-lg cursor-pointer">
+                        <div key={b.id} role="option" aria-selected="false" tabIndex={0} className="px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg cursor-pointer">
                           <div className="text-sm font-medium text-slate-900">{b.service.name}</div>
                           <div className="text-xs text-slate-600">{new Date(b.date).toLocaleDateString()} - {b.status}</div>
                         </div>
@@ -198,7 +209,7 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
         </div>
       </div>
 
-      <div className="flex items-center gap-3 md:gap-6 ml-2">
+      <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3 md:gap-6">
         {/* Notification Bell */}
         <div ref={notifRef} className="relative">
           <button 
@@ -232,8 +243,16 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
                   notifications.map((notif) => (
                     <div 
                       key={notif.id} 
-                      className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer ${notif.isRead ? 'opacity-60' : ''}`}
+                      role="menuitem"
+                      tabIndex={0}
+                      className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 transition-colors cursor-pointer ${notif.isRead ? 'opacity-60' : ''}`}
                       onClick={() => setNotifications(notifications.map(n => n.id === notif.id ? { ...n, isRead: true } : n))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setNotifications(notifications.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+                        }
+                      }}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex flex-col">
@@ -241,7 +260,7 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
                           <span className="text-xs text-slate-500 mt-0.5">{notif.message}</span>
                         </div>
                         {!notif.isRead && (
-                          <span className="h-2 w-2 rounded-full bg-[#047260] mt-1 shrink-0"></span>
+                          <span className="h-2 w-2 rounded-full bg-[#047260] mt-1 shrink-0" aria-label="Unread"></span>
                         )}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-2">{notif.time}</div>
@@ -257,13 +276,13 @@ export function TopNavbar({ notificationCount }: { notificationCount: number }) 
         </div>
 
         {/* User Profile */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#047260] text-white font-bold text-sm">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#047260] text-white font-bold text-sm">
             {user?.name ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().substring(0, 2) : "U"}
           </div>
-          <div className="hidden flex-col items-start sm:flex">
-            <span className="text-sm font-semibold text-slate-900 whitespace-nowrap">{user?.name || "Customer"}</span>
-            <span className="text-xs text-slate-500">{(user as any)?.label || "Customer"}</span>
+          <div className="hidden flex-col items-start sm:flex max-w-[120px] md:max-w-none">
+            <span className="text-sm font-semibold text-slate-900 truncate">{user?.name || "Customer"}</span>
+            <span className="text-xs text-slate-500 truncate">{(user as any)?.label || "Customer"}</span>
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@ export default async function NotificationsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold text-slate-900">Notifications</h1>
-      <NotificationsClient initialNotifications={notifications} />
+      <NotificationsClient />
     </div>
   );
 }

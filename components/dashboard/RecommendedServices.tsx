@@ -31,7 +31,7 @@ export function RecommendedServices({ services }: { services: RecommendedService
             <div className="h-32 w-full bg-slate-100 flex items-center justify-center">
               {/* Fallback image style since actual images aren't present */}
               {service.image ? (
-                <img src={service.image} alt={service.name} className="h-full w-full object-cover" />
+                <img src={service.image} alt="" aria-hidden="true" className="h-full w-full object-cover" />
               ) : (
                 <div className="text-slate-400 font-medium">Image</div>
               )}

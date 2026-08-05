@@ -50,8 +50,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  professional Professional?
-  bookings     Booking[]      @relation("CustomerBookings")
+  professional  Professional?
+  bookings      Booking[]      @relation("CustomerBookings")
+  notifications Notification[]
+  paymentMethods PaymentMethod[]
 
   @@index([email])
 }
@@ -142,4 +144,31 @@ model RebookingEvent {
   createdAt DateTime         @default(now())
 
   @@index([sourceBookingId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String
+  title      String
+  message    String
+  readStatus Boolean  @default(false)
+  iconName   String   @default("bell")
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PaymentMethod {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardType   String
+  lastFour   String
+  provider   String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
 }

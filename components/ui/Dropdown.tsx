@@ -34,6 +34,30 @@ export function Dropdown({ trigger, items, align = "right", className = "" }: Dr
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") setIsOpen(false);
+    
+    if (isOpen && dropdownRef.current) {
+      const items = Array.from(dropdownRef.current.querySelectorAll('[role="menuitem"]')) as HTMLElement[];
+      if (!items.length) return;
+
+      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+        items[nextIndex].focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+        items[prevIndex].focus();
+      }
+    } else if (!isOpen && (e.key === "Enter" || e.key === " " || e.key === "ArrowDown")) {
+      e.preventDefault();
+      setIsOpen(true);
+      setTimeout(() => {
+        const firstItem = dropdownRef.current?.querySelector('[role="menuitem"]') as HTMLElement;
+        firstItem?.focus();
+      }, 10);
+    }
   };
 
   return (
@@ -42,6 +66,8 @@ export function Dropdown({ trigger, items, align = "right", className = "" }: Dr
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="true"
         aria-expanded={isOpen}
+        role="button"
+        tabIndex={0}
       >
         {trigger}
       </div>
@@ -55,8 +81,8 @@ export function Dropdown({ trigger, items, align = "right", className = "" }: Dr
           tabIndex={-1}
         >
           <div className="py-1" role="none">
-            {items.map((item) => {
-              const baseClasses = `flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm transition-colors focus:outline-none focus:bg-slate-50 ${
+            {items.map((item, index) => {
+              const baseClasses = `flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm transition-colors focus:outline-none focus:bg-slate-50 focus:ring-2 focus:ring-teal-600 ${
                 item.danger 
                   ? "text-red-600 hover:bg-red-50 hover:text-red-700 focus:text-red-700" 
                   : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
@@ -69,6 +95,7 @@ export function Dropdown({ trigger, items, align = "right", className = "" }: Dr
                     href={item.href}
                     className={baseClasses}
                     role="menuitem"
+                    tabIndex={0}
                     onClick={() => setIsOpen(false)}
                   >
                     {item.icon && <span className="opacity-70">{item.icon}</span>}
@@ -82,6 +109,7 @@ export function Dropdown({ trigger, items, align = "right", className = "" }: Dr
                   key={item.id}
                   className={baseClasses}
                   role="menuitem"
+                  tabIndex={0}
                   onClick={() => {
                     item.onClick?.();
                     setIsOpen(false);

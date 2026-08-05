@@ -36,6 +36,8 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
               }
               ${isPassword ? "pr-10" : ""}
             `}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${id}-error` : undefined}
             {...props}
           />
           {isPassword && (
@@ -54,7 +56,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
             </button>
           )}
         </div>
-        {error && <p className="mt-0.5 text-xs text-red-500">{error}</p>}
+        {error && <p id={`${id}-error`} className="mt-0.5 text-xs text-red-500" aria-live="polite">{error}</p>}
       </div>
     );
   }

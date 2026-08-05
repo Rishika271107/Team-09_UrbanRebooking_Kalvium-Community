@@ -15,7 +15,12 @@ import {
   deleteAddressAction,
 } from "@/app/actions/address.actions";
 import type { AddressStub } from "@/services/address.service";
-
+import { PaymentList } from "@/components/payment/PaymentList";
+import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
+import { PaymentSkeleton } from "@/components/payment/PaymentSkeleton";
+import { AddPaymentModal } from "@/components/payment/AddPaymentModal";
+import type { PaymentMethodItem } from "@/components/payment/PaymentCard";
+import { toast } from "@/components/ErrorComponents";
 /* â”€â”€â”€ Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const profileSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
@@ -248,6 +253,70 @@ export default function ProfileClient({
     });
   };
 
+  /* Payments */
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>([]);
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(true);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/payment-methods')
+      .then(res => res.json())
+      .then(data => {
+        if (data.paymentMethods) setPaymentMethods(data.paymentMethods);
+        setIsPaymentsLoading(false);
+      })
+      .catch(() => setIsPaymentsLoading(false));
+  }, []);
+
+  const handleAddPayment = async (data: { cardType: string; lastFour: string; provider: string }) => {
+    try {
+      const res = await fetch('/api/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, isDefault: paymentMethods.length === 0 })
+      });
+      const result = await res.json();
+      if (result.success) {
+        setPaymentMethods(prev => [result.paymentMethod, ...prev.map(p => result.paymentMethod.isDefault ? { ...p, isDefault: false } : p)]);
+        toast.success("Payment method added");
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err) {
+      toast.error("Failed to add payment method");
+      throw err;
+    }
+  };
+
+  const handleDeletePayment = async (id: string) => {
+    const backup = [...paymentMethods];
+    setPaymentMethods(prev => prev.filter(p => p.id !== id));
+    try {
+      const res = await fetch(`/api/payment-methods/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast.success("Payment method removed");
+      
+      const refresh = await fetch('/api/payment-methods').then(r => r.json());
+      if (refresh.paymentMethods) setPaymentMethods(refresh.paymentMethods);
+    } catch (err) {
+      setPaymentMethods(backup);
+      toast.error("Failed to remove payment method");
+    }
+  };
+
+  const handleSetDefaultPayment = async (id: string) => {
+    const backup = [...paymentMethods];
+    setPaymentMethods(prev => prev.map(p => ({ ...p, isDefault: p.id === id })));
+    try {
+      const res = await fetch(`/api/payment-methods/${id}/default`, { method: 'PATCH' });
+      if (!res.ok) throw new Error();
+      toast.success("Default payment method updated");
+    } catch (err) {
+      setPaymentMethods(backup);
+      toast.error("Failed to set default");
+    }
+  };
+
   /* Notification toggles */
   const [notifSettings, setNotifSettings] = useState({
     bookingUpdates: true,
@@ -280,6 +349,7 @@ export default function ProfileClient({
 
   return (
     <>
+      {showAddPaymentModal && <AddPaymentModal onClose={() => setShowAddPaymentModal(false)} onAdd={handleAddPayment} />}
       {showPasswordModal && <PasswordModal onClose={() => setShowPasswordModal(false)} />}
 
       {showDeactivateConfirm && (
@@ -491,6 +561,31 @@ export default function ProfileClient({
               >
                 <Plus size={15} /> Add new address
               </button>
+            )}
+          </Card>
+
+          {/* Payment Methods */}
+          <Card>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Payment methods</h2>
+            
+            {isPaymentsLoading ? (
+              <PaymentSkeleton />
+            ) : paymentMethods.length === 0 ? (
+              <PaymentEmptyState onAddPayment={() => setShowAddPaymentModal(true)} />
+            ) : (
+              <>
+                <PaymentList 
+                  methods={paymentMethods} 
+                  onDelete={handleDeletePayment} 
+                  onSetDefault={handleSetDefaultPayment} 
+                />
+                <button
+                  onClick={() => setShowAddPaymentModal(true)}
+                  className="mt-4 w-full py-2.5 rounded-lg border border-dashed border-slate-300 text-sm font-medium text-slate-500 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Plus size={15} /> Add new payment method
+                </button>
+              </>
             )}
           </Card>
 

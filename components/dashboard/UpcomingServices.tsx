@@ -33,7 +33,8 @@ export function UpcomingServices({ services }: UpcomingServicesProps) {
                 {service.professionalAvatar ? (
                   <img
                     src={service.professionalAvatar}
-                    alt={service.professionalName}
+                    alt=""
+                    aria-hidden="true"
                     className="h-12 w-12 rounded-full object-cover"
                   />
                 ) : (
