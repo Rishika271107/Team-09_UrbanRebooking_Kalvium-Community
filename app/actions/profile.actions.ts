@@ -2,12 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/auth";
 import { updateUserProfile, updateUserPassword } from "@/services/user.service";
 
 async function requireUserId() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
   return session.user.id;
 }

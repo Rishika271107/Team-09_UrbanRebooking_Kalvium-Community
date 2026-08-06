@@ -48,7 +48,7 @@ export function RecommendedServices({ services }: { services: RecommendedService
                 <p className="text-xs text-slate-500 mt-1">{service.category}</p>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <span className="font-bold text-slate-900">${service.price}</span>
+                <span className="font-bold text-slate-900">₹{service.price}</span>
                 <Link 
                   href={`/dashboard`} 
                   className="rounded-lg bg-[#047260] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-teal-700"

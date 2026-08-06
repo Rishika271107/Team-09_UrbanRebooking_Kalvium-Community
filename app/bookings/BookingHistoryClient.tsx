@@ -98,7 +98,7 @@ function formatDate(iso: string | null) {
 function formatPrice(p: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
     maximumFractionDigits: 0,
   }).format(p);
 }

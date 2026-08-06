@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getBookingById } from "@/services/booking.service";
 import { getUserNotifications } from "@/services/notification.service";
@@ -24,7 +23,7 @@ export default async function BookingDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
@@ -46,7 +45,7 @@ export default async function BookingDetailsPage({
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>
-      <div className="flex flex-col gap-8 pb-10">
+      <div className="flex flex-col gap-6 lg:gap-8 pb-10">
         <div>
           <Link href="/bookings" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 mb-4 transition-colors">
             <ArrowLeft size={16} /> Back to Bookings

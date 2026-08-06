@@ -1,12 +1,10 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getUserNotifications } from "@/services/notification.service";
 import NotificationsClient from "./NotificationsClient";
 
 export default async function NotificationsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     redirect("/login");
@@ -14,19 +12,13 @@ export default async function NotificationsPage() {
 
   const userId = session.user.id;
   const notifications = await getUserNotifications(userId);
-  const unreadNotificationsCount = notifications.filter(
-    (n) => !n.readStatus
-  ).length;
 
   return (
-    <DashboardLayout notificationCount={unreadNotificationsCount}>
-      <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-bold text-slate-900">
-          Notifications
-        </h1>
-
-        <NotificationsClient initialNotifications={notifications} />
-      </div>
-    </DashboardLayout>
+    <div className="flex flex-col gap-6 lg:gap-8 pb-10">
+      <h1 className="text-2xl font-bold text-slate-900">
+        Notifications
+      </h1>
+      <NotificationsClient initialNotifications={notifications} />
+    </div>
   );
 }
