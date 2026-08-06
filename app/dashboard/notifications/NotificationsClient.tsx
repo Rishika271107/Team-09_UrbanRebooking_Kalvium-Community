@@ -110,20 +110,15 @@ export default function NotificationsClient() {
 
   const unreadCount = notifications.filter(n => !n.readStatus).length;
 
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case "bell":
-        return { icon: <Bell size={20} />, colors: "bg-emerald-50 text-emerald-600" };
-      case "calendar":
-        return { icon: <CalendarHeart size={20} />, colors: "bg-blue-50 text-blue-500" };
-      case "tag":
-        return { icon: <Tag size={20} />, colors: "bg-orange-50 text-orange-500" };
-      case "card":
-        return { icon: <CreditCard size={20} />, colors: "bg-emerald-50 text-emerald-600" };
-      default:
-        return { icon: <Bell size={20} />, colors: "bg-slate-100 text-slate-500" };
-    }
-  };
+  const formattedNotifications = filteredNotifications.map(n => ({
+    id: n.id,
+    type: n.type || "update",
+    title: n.title,
+    message: n.message,
+    readStatus: n.readStatus,
+    date: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
+    iconName: n.iconName || "bell"
+  }));
 
   return (
     <div className="bg-white rounded-xl shadow-sm border p-6">

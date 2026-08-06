@@ -15,7 +15,7 @@ export default async function RebookPage() {
 
   return (
     <DashboardLayout notificationCount={unreadNotificationsCount}>
-      <div className="flex flex-col gap-6 pb-12">
+      <div className="flex flex-col gap-6 lg:gap-8 pb-10">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold text-slate-900">One-Click Rebooking</h1>
           <p className="text-slate-500">

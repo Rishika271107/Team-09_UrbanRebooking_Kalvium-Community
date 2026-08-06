@@ -129,7 +129,7 @@ export default function DashboardClient({ userName }: { userName: string }) {
     {
       id: "money-spent",
       title: "Money Spent",
-      value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(moneySpent),
+      value: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(moneySpent),
       icon: "MapPin",
     }
   ];
@@ -249,7 +249,7 @@ export default function DashboardClient({ userName }: { userName: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-12">
+    <div className="flex flex-col gap-6 lg:gap-8 pb-10">
       <WelcomeBanner 
         firstName={userName.split(" ")[0]} 
         nextService={nextServiceData} 
@@ -392,8 +392,8 @@ export default function DashboardClient({ userName }: { userName: string }) {
               </div>
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-sm font-bold text-[#047260]">${item.discountPrice}</span>
-                  <span className="text-xs text-slate-405 line-through">${item.price}</span>
+                  <span className="text-sm font-bold text-[#047260]">₹{item.discountPrice}</span>
+                  <span className="text-xs text-slate-405 line-through">₹{item.price}</span>
                 </div>
                 <button 
                   onClick={() => router.push("/rebook")}
@@ -440,7 +440,7 @@ export default function DashboardClient({ userName }: { userName: string }) {
               </span>
               <div>
                 <h4 className="text-sm font-bold text-slate-900 group-hover:text-[#047260]">{svc.name}</h4>
-                <p className="text-sm font-semibold text-[#047260] mt-1">from ${svc.price}</p>
+                <p className="text-sm font-semibold text-[#047260] mt-1">from ₹{svc.price}</p>
               </div>
               <button className="mt-auto text-xs font-semibold text-[#047260] hover:underline text-left">
                 Book Now →
@@ -468,7 +468,7 @@ export default function DashboardClient({ userName }: { userName: string }) {
               </div>
               <h4 className="text-sm font-semibold text-slate-900 group-hover:text-[#047260]">{svc.name}</h4>
               <p className="text-xs text-slate-400">{svc.desc} • Recently</p>
-              <p className="text-sm font-bold text-[#047260]">from ${svc.price}</p>
+              <p className="text-sm font-bold text-[#047260]">from ₹{svc.price}</p>
             </div>
           ))}
         </div>

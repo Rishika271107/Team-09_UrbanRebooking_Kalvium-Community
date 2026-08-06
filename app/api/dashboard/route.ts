@@ -36,14 +36,18 @@ export async function GET(req: NextRequest) {
     }
 
     // Trending Services (Find services with most bookings globally, or just take first 4 if few bookings)
+    // Prisma v5 groupBy does not support `orderBy: { _count: { _all } }` — use a raw count approach instead
     const bookingCounts = await prisma.booking.groupBy({
       by: ["serviceId"],
-      _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: 4
+      _count: { serviceId: true },
     });
 
-    let trendingServiceIds = bookingCounts.map(bc => bc.serviceId);
+    // Sort by count descending in JS and take top 4
+    const topBookingCounts = bookingCounts
+      .sort((a, b) => b._count.serviceId - a._count.serviceId)
+      .slice(0, 4);
+
+    let trendingServiceIds = topBookingCounts.map(bc => bc.serviceId).filter(Boolean) as string[];
     let trendingServices = [];
     if (trendingServiceIds.length > 0) {
       trendingServices = await prisma.service.findMany({

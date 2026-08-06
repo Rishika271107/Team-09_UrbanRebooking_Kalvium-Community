@@ -38,7 +38,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
 
         <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
           <div className="font-bold text-lg text-slate-900">
-            ${service.price.toFixed(2)}
+            ₹{service.price.toFixed(2)}
           </div>
           
           <Link href={`/rebook/${service.id}`} className="flex items-center justify-center gap-1 px-4 py-2 bg-teal-50 text-teal-700 rounded-lg font-semibold text-sm hover:bg-teal-100 transition-colors">

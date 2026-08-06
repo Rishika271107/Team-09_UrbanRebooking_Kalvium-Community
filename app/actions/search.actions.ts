@@ -1,10 +1,9 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/auth";
 import { globalSearch } from "@/services/search.service";
 
 export async function searchAction(query: string) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   return globalSearch(query, session?.user?.id);
 }

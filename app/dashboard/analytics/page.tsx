@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { getDashboardAnalytics } from "@/services/analytics.service";
 import { getUserNotifications } from "@/services/notification.service";
@@ -13,7 +12,7 @@ export const metadata = {
 };
 
 export default async function AnalyticsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
