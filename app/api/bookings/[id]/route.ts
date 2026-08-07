@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { z } from "zod";
 
 export async function POST(
   _req: NextRequest,
@@ -22,9 +23,12 @@ export async function POST(
   }
 
   const { id } = await context.params;
-  if (!id) {
-    return NextResponse.json({ error: "A booking id is required." }, { status: 400 });
+  const idSchema = z.string().min(1, "A booking id is required.");
+  const parsedId = idSchema.safeParse(id);
+  if (!parsedId.success) {
+    return NextResponse.json({ error: "A valid booking id is required." }, { status: 400 });
   }
+
 
   try {
     const sourceBooking = await prisma.booking.findUnique({
@@ -82,6 +86,17 @@ export async function POST(
           sourceBookingId: sourceBooking.id,
           newBookingId: draft.id,
           outcome: professionalAvailable ? "SUCCESS" : "PROFESSIONAL_UNAVAILABLE",
+        },
+      });
+
+      // Automatically generate notification for Rebooking Successful & Professional Assigned
+      await tx.notification.create({
+        data: {
+          userId: session.user.id,
+          title: "Rebooking Draft Created",
+          message: professionalAvailable
+            ? `Your rebooking draft for ${draft.service.name} has been created successfully. Professional ${draft.professional?.user?.name || ""} is assigned.`
+            : `Your rebooking draft for ${draft.service.name} has been created. However, your preferred professional is currently unavailable.`,
         },
       });
 

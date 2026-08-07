@@ -40,15 +40,16 @@ enum RebookingOutcome {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  password  String
-  role      Role     @default(CUSTOMER)
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  password     String
+  role         Role     @default(CUSTOMER)
+  address      String?
+  profileImage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   professional  Professional?
   bookings      Booking[]      @relation("CustomerBookings")
@@ -153,6 +154,7 @@ model Booking {
 
   rebookingEventsAsSource RebookingEvent[] @relation("SourceBookingEvents")
   rebookingEventsAsNew    RebookingEvent[] @relation("NewBookingEvents")
+  payments                Payment[]
 
   @@index([userId])
   @@index([professionalId])
@@ -190,3 +192,40 @@ model RebookingEvent {
 
   @@index([sourceBookingId])
 }
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount        Float
+  status        PaymentStatus @default(PENDING)
+  provider      String        @default("RAZORPAY")
+  orderId       String        @unique
+  paymentId     String?       @unique
+  signature     String?
+  errorMessage  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([orderId])
+}
+
+

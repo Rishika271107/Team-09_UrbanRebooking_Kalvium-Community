@@ -36,6 +36,10 @@ export function logAuthSignUp(userId: string, email: string) {
   log("info", { event: "auth.sign_up", userId, email });
 }
 
+export function logAuthSignOut(userId: string) {
+  log("info", { event: "auth.sign_out", userId });
+}
+
 export function logAuthFailure(email: string, reason: string) {
   log("warn", { event: "auth.failure", email, reason });
 }
@@ -54,7 +58,35 @@ export function logReviewSubmitted(userId: string, bookingId: string, rating: nu
   log("info", { event: "review.submitted", userId, bookingId, rating });
 }
 
-// ── Database Events ───────────────────────────────────────────────────────────
+// ── Payment Events ────────────────────────────────────────────────────────────
+
+export function logPaymentOrderCreated(userId: string, bookingId: string, orderId: string, amount: number) {
+  log("info", { event: "payment.order_created", userId, bookingId, orderId, amount });
+}
+
+export function logPaymentVerified(userId: string, bookingId: string, paymentId: string, orderId: string) {
+  log("info", { event: "payment.verified", userId, bookingId, paymentId, orderId });
+}
+
+export function logPaymentFailure(userId: string, bookingId: string, orderId: string, reason: string) {
+  log("warn", { event: "payment.failed", userId, bookingId, orderId, reason });
+}
+
+// ── Notification Events ───────────────────────────────────────────────────────
+
+export function logNotificationCreated(userId: string, notificationId: string, title: string) {
+  log("info", { event: "notification.created", userId, notificationId, title });
+}
+
+export function logNotificationRead(userId: string, notificationId: string) {
+  log("info", { event: "notification.read", userId, notificationId });
+}
+
+// ── Database & Validation Events ──────────────────────────────────────────────
+
+export function logValidationError(context: string, errors: unknown) {
+  log("warn", { event: "validation.error", context, errors });
+}
 
 export function logDbError(operation: string, error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -68,3 +100,4 @@ export function logUnexpectedError(context: string, error: unknown) {
   const stack = error instanceof Error ? error.stack : undefined;
   log("error", { event: "unexpected_error", context, message, stack });
 }
+
