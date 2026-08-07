@@ -193,39 +193,29 @@ model RebookingEvent {
   @@index([sourceBookingId])
 }
 
-model PasswordReset {
-  id        String   @id @default(cuid())
-  email     String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String
+  title      String
+  message    String
+  readStatus Boolean  @default(false)
+  iconName   String   @default("bell")
+  createdAt  DateTime @default(now())
 
-  @@index([email])
+  @@index([userId])
 }
 
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  CANCELLED
+model PaymentMethod {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardType   String
+  lastFour   String
+  provider   String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
 }
-
-model Payment {
-  id            String        @id @default(cuid())
-  bookingId     String
-  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  amount        Float
-  status        PaymentStatus @default(PENDING)
-  provider      String        @default("RAZORPAY")
-  orderId       String        @unique
-  paymentId     String?       @unique
-  signature     String?
-  errorMessage  String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@index([bookingId])
-  @@index([orderId])
-}
-
-

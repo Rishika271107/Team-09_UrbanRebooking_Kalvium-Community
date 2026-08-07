@@ -18,15 +18,15 @@ export async function GET() {
       await Promise.all([
         prisma.rebookingEvent.groupBy({
           by: ["outcome"],
-          _count: { _all: true },
+          _count: { outcome: true },
         }),
         prisma.booking.groupBy({
           by: ["status"],
-          _count: { _all: true },
+          _count: { status: true },
         }),
         prisma.calendarSlot.groupBy({
           by: ["slotType"],
-          _count: { _all: true },
+          _count: { slotType: true },
         }),
         prisma.professional.findMany({
           include: {
@@ -37,9 +37,9 @@ export async function GET() {
         }),
       ]);
 
-    const totalRebookingEvents = rebookingOutcomes.reduce((sum, o) => sum + o._count._all, 0);
+    const totalRebookingEvents = rebookingOutcomes.reduce((sum, o) => sum + o._count.outcome, 0);
     const successfulRebookings =
-      rebookingOutcomes.find((o) => o.outcome === "SUCCESS")?._count._all ?? 0;
+      rebookingOutcomes.find((o) => o.outcome === "SUCCESS")?._count.outcome ?? 0;
     const rebookingSuccessRate =
       totalRebookingEvents > 0 ? successfulRebookings / totalRebookingEvents : 0;
 
@@ -64,15 +64,15 @@ export async function GET() {
       },
       rebookingOutcomes: rebookingOutcomes.map((o) => ({
         outcome: o.outcome,
-        count: o._count._all,
+        count: o._count.outcome,
       })),
       bookingStatusBreakdown: bookingStatusBreakdown.map((s) => ({
         status: s.status,
-        count: s._count._all,
+        count: s._count.status,
       })),
       slotTypeBreakdown: slotTypeBreakdown.map((s) => ({
         slotType: s.slotType,
-        count: s._count._all,
+        count: s._count.slotType,
       })),
       professionalUtilization,
     });

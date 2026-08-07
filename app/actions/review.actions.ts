@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/auth";
 import { createReview } from "@/services/review.service";
 
 export async function submitReviewAction(data: {
@@ -12,7 +11,7 @@ export async function submitReviewAction(data: {
   reviewText?: string;
 }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
     await createReview(session.user.id, data);

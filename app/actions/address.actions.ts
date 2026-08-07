@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/auth";
 import { createAddress, updateAddress, deleteAddress, setDefaultAddress } from "@/services/address.service";
 
 interface AddressData {
@@ -14,7 +13,7 @@ interface AddressData {
 }
 
 async function requireUserId() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
   return session.user.id;
 }

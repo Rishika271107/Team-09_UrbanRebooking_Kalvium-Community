@@ -19,7 +19,7 @@ export function PriceBreakdownCard({
   total,
   title = "Price Breakdown",
   className = "",
-  currencyPrefix = "$",
+  currencyPrefix = "₹",
 }: PriceBreakdownCardProps) {
   const formatCurrency = (amount: number) => {
     return `${currencyPrefix}${amount.toFixed(2)}`;
