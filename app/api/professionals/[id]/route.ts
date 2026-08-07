@@ -1,66 +1,121 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const professional = await prisma.professional.findUnique({
-      where: { id: params.id },
-      include: {
-        user: {
-          select: { name: true }
-        },
-        calendarSlots: {
-          where: { slotType: "AVAILABLE" },
-          orderBy: { startTime: 'asc' },
-          // Limit to near future for UI simplicity
-          take: 50
-        }
-      }
-    });
+    const { id } = await params;
 
-    if (!professional) {
-      return NextResponse.json({ error: "Professional not found" }, { status: 404 });
+    if (!id) {
+      return NextResponse.json(
+        { error: "Missing professional ID." },
+        { status: 400 }
+      );
     }
 
-    // Mock reviews since there is no Review model in Prisma schema
-    const mockReviews = [
-      {
-        id: "rev1",
-        customerName: "Sarah M.",
-        rating: 5,
-        date: "2 days ago",
-        text: "Exceptional service! Arrived exactly on time and was very professional."
+    const professional = await prisma.professional.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            name: true,
+          },
+        },
+        reviews: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            rating: true,
+            reviewText: true,
+            createdAt: true,
+            user: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        calendarSlots: {
+          where: {
+            slotType: "AVAILABLE",
+            startTime: {
+              gte: new Date(),
+            },
+          },
+          orderBy: {
+            startTime: "asc",
+          },
+          take: 20,
+          select: {
+            startTime: true,
+            endTime: true,
+          },
+        },
       },
+    });
+
+    if (!professional || !professional.active) {
+      return NextResponse.json(
+        { error: "Professional not found." },
+        { status: 404 }
+      );
+    }
+
+    const joinedDate = new Date(professional.createdAt);
+    const now = new Date();
+
+    const diffDays = Math.floor(
+      (now.getTime() - joinedDate.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    let experience = "New Professional";
+
+    if (diffDays >= 365) {
+      const years = Math.floor(diffDays / 365);
+      experience = `${years} year${years > 1 ? "s" : ""} experience`;
+    } else if (diffDays >= 30) {
+      const months = Math.floor(diffDays / 30);
+      experience = `${months} month${months > 1 ? "s" : ""} experience`;
+    } else {
+      experience = `${diffDays} day${diffDays !== 1 ? "s" : ""} experience`;
+    }
+
+    return NextResponse.json(
       {
-        id: "rev2",
-        customerName: "John D.",
-        rating: 4,
-        date: "1 week ago",
-        text: "Great work, very detailed. Would definitely book again."
+        professional: {
+          name: professional.user.name,
+          rating: professional.rating,
+          skills: professional.skills,
+          completedJobs: professional.jobsCompleted,
+          experience,
+          reviews: professional.reviews.map((review) => ({
+            reviewerName: review.user.name,
+            rating: review.rating,
+            reviewText: review.reviewText,
+            createdAt: review.createdAt,
+          })),
+          upcomingAvailability: professional.calendarSlots.map((slot) => ({
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          })),
+        },
       },
-      {
-        id: "rev3",
-        customerName: "Emily R.",
-        rating: 5,
-        date: "2 weeks ago",
-        text: "Best experience I've had with Urban Company. Highly recommended!"
-      }
-    ];
-
-    // Mock extra stats
-    const stats = {
-      experienceYears: Math.floor(Math.random() * 8) + 2,
-      completedJobs: Math.floor(Math.random() * 400) + 50
-    };
-
-    return NextResponse.json({
-      professional,
-      reviews: mockReviews,
-      stats
-    }, { status: 200 });
-
+      { status: 200 }
+    );
   } catch (err) {
     console.error("Fetch professional error:", err);
-    return NextResponse.json({ error: "Failed to fetch professional details" }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: "Failed to fetch professional details.",
+      },
+      {
+        status: 500,
+      }
+    );
   }
 }

@@ -32,6 +32,42 @@ export const profileSchema = z.object({
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
+export const updateProfileSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, "Name must be at least 2 characters.")
+      .optional(),
+    phone: z
+      .string()
+      .trim()
+      .min(7, "Please enter a valid phone number.")
+      .optional(),
+    profileImage: z
+      .string()
+      .trim()
+      .refine(
+        (val) => val === "" || /^https?:\/\/.+/.test(val),
+        "profileImage must be a valid URL or an empty string."
+      )
+      .optional(),
+    defaultAddressId: z
+      .string()
+      .trim()
+      .min(1, "defaultAddressId must not be empty.")
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.phone !== undefined ||
+      data.profileImage !== undefined ||
+      data.defaultAddressId !== undefined,
+    { message: "At least one field must be provided to update." }
+  );
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
 export const passwordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
   newPassword: z.string().min(8, "Password must be at least 8 characters"),

@@ -40,15 +40,16 @@ enum RebookingOutcome {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  password  String
-  role      Role     @default(CUSTOMER)
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  password     String
+  role         Role     @default(CUSTOMER)
+  address      String?
+  profileImage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   professional  Professional?
   bookings      Booking[]      @relation("CustomerBookings")
@@ -153,6 +154,7 @@ model Booking {
 
   rebookingEventsAsSource RebookingEvent[] @relation("SourceBookingEvents")
   rebookingEventsAsNew    RebookingEvent[] @relation("NewBookingEvents")
+  payments                Payment[]
 
   @@index([userId])
   @@index([professionalId])
