@@ -4,14 +4,11 @@
 
 type LogLevel = "info" | "warn" | "error" | "debug";
 
-function log(level: LogLevel, message: string, meta?: Record<string, unknown>) {
+function log(level: LogLevel, meta: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
-  if (meta) {
-    console[level === "debug" ? "log" : level](`${prefix} ${message}`, meta);
-  } else {
-    console[level === "debug" ? "log" : level](`${prefix} ${message}`);
-  }
+  const event = typeof meta.event === 'string' ? meta.event : 'log';
+  console[level === "debug" ? "log" : level](`${prefix} ${event}`, meta);
 }
 
 // ── Auth Events ──────────────────────────────────────────────────────────────

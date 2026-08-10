@@ -93,6 +93,7 @@ export async function POST(
       await tx.notification.create({
         data: {
           userId: session.user.id,
+          type: "REBOOKING",
           title: "Rebooking Draft Created",
           message: professionalAvailable
             ? `Your rebooking draft for ${draft.service.name} has been created successfully. Professional ${draft.professional?.user?.name || ""} is assigned.`

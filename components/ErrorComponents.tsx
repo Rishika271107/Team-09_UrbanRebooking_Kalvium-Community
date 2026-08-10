@@ -56,6 +56,15 @@ export function toast(opts: Omit<Toast, "id">) {
     _toastDispatch(opts);
   }
 }
+toast.success = (title: string, message?: string) =>
+  toast({ type: "success", title, message });
+toast.error = (title: string, message?: string) =>
+  toast({ type: "error", title, message });
+toast.info = (title: string, message?: string) =>
+  toast({ type: "info", title, message });
+toast.warning = (title: string, message?: string) =>
+  toast({ type: "warning", title, message });
+
 
 /** Drop-in toast container — mount once inside the root layout or DashboardLayout. */
 export function ToastProvider() {

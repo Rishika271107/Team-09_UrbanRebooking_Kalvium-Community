@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { setDefaultPaymentMethod } from "@/services/payment.service";
 import { requireSession } from "@/lib/session";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { session, error } = await requireSession();
   if (error) return error;
 
   try {
-    const updated = await setDefaultPaymentMethod(params.id, session.user.id);
+    const { id } = await params;
+    const updated = await setDefaultPaymentMethod(id, session.user.id);
     
     if (!updated) {
       return NextResponse.json({ error: "Payment method not found or access denied." }, { status: 404 });

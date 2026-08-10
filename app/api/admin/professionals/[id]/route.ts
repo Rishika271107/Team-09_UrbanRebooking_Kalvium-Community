@@ -51,9 +51,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Professional profile not found." }, { status: 404 });
     }
 
+    const updateData: { active?: boolean; skills?: string } = {};
+    if (parsed.data.active !== undefined) updateData.active = parsed.data.active;
+    if (parsed.data.skills !== undefined) updateData.skills = parsed.data.skills.join(",");
+
     const updated = await prisma.professional.update({
       where: { id },
-      data: parsed.data,
+      data: updateData,
       include: {
         user: { select: { name: true, email: true } },
       },
