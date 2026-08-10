@@ -16,6 +16,10 @@ import {
   setDefaultAddressAction,
 } from "@/app/actions/address.actions";
 import type { AddressStub } from "@/services/address.service";
+import { AddPaymentModal } from "@/components/payment/AddPaymentModal";
+import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
+import { PaymentList } from "@/components/payment/PaymentList";
+import { PaymentSkeleton } from "@/components/payment/PaymentSkeleton";
 
 /* ─── Schemas ──────────────────────────────────────────────────────── */
 const profileSchema = z.object({
@@ -255,6 +259,24 @@ export default function ProfileClient({
     startAddrTransition(async () => {
       await setDefaultAddressAction(id);
     });
+  };
+
+  /* Payments */
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+
+  const handleAddPayment = (method: any) => {
+    setPaymentMethods((prev) => [...prev, method]);
+    setShowAddPaymentModal(false);
+  };
+  const handleDeletePayment = (id: string) => {
+    setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+  };
+  const handleSetDefaultPayment = (id: string) => {
+    setPaymentMethods((prev) =>
+      prev.map((m) => ({ ...m, isDefault: m.id === id }))
+    );
   };
 
   /* Notification toggles */
