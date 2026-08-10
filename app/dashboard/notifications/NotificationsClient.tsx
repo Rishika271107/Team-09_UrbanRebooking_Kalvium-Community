@@ -17,10 +17,15 @@ type NotificationData = {
   iconName: string;
 };
 
-export default function NotificationsClient() {
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+export default function NotificationsClient({ initialNotifications = [] }: { initialNotifications?: any[] }) {
+  const [notifications, setNotifications] = useState<NotificationData[]>(
+    initialNotifications.map((n: any) => ({
+      ...n,
+      createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : n.createdAt
+    }))
+  );
   const [activeTab, setActiveTab] = useState("All");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchNotifications();

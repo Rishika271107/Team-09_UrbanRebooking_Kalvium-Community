@@ -48,23 +48,40 @@ const TOAST_STYLES: Record<ToastType, string> = {
   warning: "border-l-4 border-amber-500",
 };
 
+export interface ToastFunction {
+  (opts: Omit<Toast, "id">): void;
+  success(title: string, message?: string): void;
+  error(title: string, message?: string): void;
+  info(title: string, message?: string): void;
+  warning(title: string, message?: string): void;
+}
+
 /* Global toast dispatcher — works without React context */
 let _toastDispatch: ((toast: Omit<Toast, "id">) => void) | null = null;
 
-export function toast(opts: Omit<Toast, "id">) {
-  if (_toastDispatch) {
-    _toastDispatch(opts);
+export const toast: ToastFunction = Object.assign(
+  (opts: Omit<Toast, "id">) => {
+    if (_toastDispatch) {
+      _toastDispatch(opts);
+    }
+  },
+  {
+    success: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "success" as const, title, message });
+    },
+    error: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "error" as const, title, message });
+    },
+    info: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "info" as const, title, message });
+    },
+    warning: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "warning" as const, title, message });
+    },
   }
-}
-toast.success = (title: string, message?: string) =>
-  toast({ type: "success", title, message });
-toast.error = (title: string, message?: string) =>
-  toast({ type: "error", title, message });
-toast.info = (title: string, message?: string) =>
-  toast({ type: "info", title, message });
-toast.warning = (title: string, message?: string) =>
-  toast({ type: "warning", title, message });
+);
 
+>>>>>>> origin/main
 
 /** Drop-in toast container — mount once inside the root layout or DashboardLayout. */
 export function ToastProvider() {

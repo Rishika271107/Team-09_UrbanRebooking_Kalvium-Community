@@ -27,6 +27,7 @@ model User {
   notifications  Notification[]
   reviews        Review[]
   paymentMethods PaymentMethod[]
+  Payment        Payment[]
 
   @@index([email])
 }
@@ -155,7 +156,7 @@ model Notification {
   id         String   @id @default(cuid())
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type       String
+  type       String   @default("info")
   title      String
   message    String
   readStatus Boolean  @default(false)
@@ -179,19 +180,25 @@ model PaymentMethod {
 }
 
 model Payment {
-  id           String   @id @default(cuid())
-  bookingId    String
-  booking      Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  amount       Float
-  status       String   @default("PENDING") // PENDING | SUCCESS | FAILED | CANCELLED
-  orderId      String   @unique // Razorpay order ID
-  paymentId    String? // Razorpay payment ID (after success)
-  signature    String? // Razorpay signature (after success)
-  errorMessage String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Float
+  status        String   @default("PENDING") // PENDING | SUCCESS | FAILED | CANCELLED
+  paymentMethod String?
+  transactionId String?  @unique
+  orderId       String   @unique // Razorpay order ID
+  paymentId     String?  // Razorpay payment ID (after success)
+  signature     String?  // Razorpay signature (after success)
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([bookingId])
+  @@index([userId])
+  @@index([orderId])
 }
 
 model PasswordReset {
