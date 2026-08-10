@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { withAuth } from "next-auth/middleware";
+import type { NextRequestWithAuth } from "next-auth/middleware";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/get-client-ip";
 
@@ -8,7 +9,7 @@ const RATE_LIMITED_AUTH_PATHS = [
   "/api/auth/register",
 ];
 
-export default auth((req) => {
+export default withAuth((req: NextRequestWithAuth) => {
   const { pathname } = req.nextUrl;
 
   // 1. Apply Rate Limiting
@@ -24,13 +25,13 @@ export default auth((req) => {
   }
 
   // 2. Role-based redirections
-  const token = req.auth;
+  const token = req.nextauth.token; // injected by next-auth v4 withAuth() wrapper
 
-  if (pathname.startsWith("/professional") && token?.user?.role !== "PROFESSIONAL") {
+  if (pathname.startsWith("/professional") && token?.role !== "PROFESSIONAL") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  if (pathname.startsWith("/admin") && token?.user?.role !== "ADMIN") {
+  if (pathname.startsWith("/admin") && token?.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

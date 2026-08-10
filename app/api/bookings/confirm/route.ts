@@ -41,6 +41,15 @@ export async function POST(req: NextRequest) {
   const start = new Date(slotStart);
   const end = new Date(slotEnd);
 
+  // 1. Prevent booking past dates
+  if (start < new Date()) {
+    return NextResponse.json(
+      { error: "Cannot book slots in the past." },
+      { status: 400 }
+    );
+  }
+
+
   try {
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
 
