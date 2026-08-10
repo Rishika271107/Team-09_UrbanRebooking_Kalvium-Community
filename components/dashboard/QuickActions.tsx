@@ -1,53 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { PlusCircle, History, MapPin, User } from "lucide-react";
+import { RotateCw, CalendarDays, Bell, User } from "lucide-react";
+
+const actions = [
+  { label: "Rebook", href: "/rebook", icon: RotateCw, color: "bg-teal-50 text-teal-700" },
+  { label: "Bookings", href: "/bookings", icon: CalendarDays, color: "bg-blue-50 text-blue-700" },
+  { label: "Notifications", href: "/dashboard/notifications", icon: Bell, color: "bg-amber-50 text-amber-700" },
+  { label: "Profile", href: "/dashboard/profile", icon: User, color: "bg-violet-50 text-violet-700" },
+];
 
 export function QuickActions() {
-  const actions = [
-    {
-      title: "Book Service",
-      icon: PlusCircle,
-      href: "/dashboard",
-      color: "text-[#047260] bg-emerald-50",
-    },
-    {
-      title: "View All Bookings",
-      icon: History,
-      href: "/bookings",
-      color: "text-blue-600 bg-blue-50",
-    },
-    {
-      title: "Manage Addresses",
-      icon: MapPin,
-      href: "/dashboard/profile",
-      color: "text-purple-600 bg-purple-50",
-    },
-    {
-      title: "Edit Profile",
-      icon: User,
-      href: "/dashboard/profile",
-      color: "text-orange-600 bg-orange-50",
-    },
-  ];
-
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Quick Actions</h2>
-        <p className="mt-1 text-sm text-slate-500">What do you need today?</p>
-      </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {actions.map((action, i) => (
+    <div className="flex flex-col gap-3">
+      <h2 className="text-lg font-bold text-slate-900">Quick Actions</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {actions.map((a) => (
           <Link
-            key={i}
-            href={action.href}
-            className="group flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-[#047260] hover:shadow-sm"
+            key={a.href}
+            href={a.href}
+            className="flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
           >
-            <div className={`flex h-12 w-12 items-center justify-center rounded-full transition-transform group-hover:scale-110 ${action.color}`}>
-              <action.icon size={24} />
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${a.color}`}>
+              <a.icon size={20} />
             </div>
-            <span className="text-sm font-semibold text-slate-700 group-hover:text-[#047260]">{action.title}</span>
+            <span className="text-sm font-medium text-slate-700">{a.label}</span>
           </Link>
         ))}
       </div>

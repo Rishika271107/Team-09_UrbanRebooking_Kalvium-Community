@@ -1,218 +1,91 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
-import { QuickRebookCard, QuickRebookProps } from "@/components/dashboard/QuickRebookCard";
-import { Search, Filter, CalendarX2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { RotateCw, Loader2 } from "lucide-react";
 
-interface BookingItem {
+interface Booking {
   id: string;
-  status: string;
+  service: { name: string; category: string };
   slotStart: string | null;
-  price: number;
-  service: { id: string; name: string; category: string; price: number };
-  professional: { id: string; active: boolean; user: { name: string } } | null;
+  status: string;
+  professional: { user: { name: string } } | null;
+}
+
+interface PaginatedResponse {
+  bookings: Booking[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export default function RebookListClient() {
-  const [bookings, setBookings] = useState<BookingItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Filters and Sort State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [serviceTypeFilter, setServiceTypeFilter] = useState("ALL");
-  const [sortBy, setSortBy] = useState("NEWEST");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch("/api/bookings/history");
-        const data = await res.json();
-        if (res.ok && data.bookings) {
-          // Only show COMPLETED bookings
-          setBookings(data.bookings.filter((b: BookingItem) => b.status === "COMPLETED"));
-        }
-      } catch (err) {
-        console.error("Failed to load completed bookings", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchBookings();
+  const fetchBookings = useCallback(async (p: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/bookings/history?page=${p}`);
+      const data: PaginatedResponse = await res.json();
+      if (!res.ok) throw new Error("Failed to load bookings");
+      const eligible = data.bookings.filter((b) => b.status === "COMPLETED");
+      setBookings(eligible);
+      setTotal(data.total);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Compute unique service categories for filter dropdown
-  const categories = useMemo(() => {
-    const cats = new Set(bookings.map(b => b.service.category));
-    return ["ALL", ...Array.from(cats)];
-  }, [bookings]);
+  useEffect(() => { fetchBookings(page); }, [fetchBookings, page]);
 
-  // Filter and Sort logic
-  const filteredAndSortedBookings = useMemo(() => {
-    let result = [...bookings];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={24} className="animate-spin text-teal-600" />
+      </div>
+    );
+  }
 
-    // 1. Search
-    if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(b => 
-        b.service.name.toLowerCase().includes(q) || 
-        (b.professional?.user.name.toLowerCase() || "").includes(q)
-      );
-    }
+  if (error) {
+    return <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-600">{error}</div>;
+  }
 
-    // 2. Category Filter
-    if (serviceTypeFilter !== "ALL") {
-      result = result.filter(b => b.service.category === serviceTypeFilter);
-    }
-
-    // 3. Sort
-    result.sort((a, b) => {
-      const dateA = a.slotStart ? new Date(a.slotStart).getTime() : 0;
-      const dateB = b.slotStart ? new Date(b.slotStart).getTime() : 0;
-      const priceA = a.service.price || a.price || 0;
-      const priceB = b.service.price || b.price || 0;
-
-      switch (sortBy) {
-        case "NEWEST":
-          return dateB - dateA;
-        case "OLDEST":
-          return dateA - dateB;
-        case "PRICE_HIGH":
-          return priceB - priceA;
-        case "PRICE_LOW":
-          return priceA - priceB;
-        default:
-          return 0;
-      }
-    });
-
-    return result;
-  }, [bookings, searchQuery, serviceTypeFilter, sortBy]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedBookings.length / itemsPerPage);
-  const paginatedBookings = filteredAndSortedBookings.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Map to QuickRebookProps
-  const mappedItems: QuickRebookProps[] = paginatedBookings.map(b => {
-    const d = b.slotStart ? new Date(b.slotStart) : null;
-    return {
-      id: b.id,
-      serviceName: b.service.name,
-      professionalName: b.professional?.user.name || "Unassigned Pro",
-      rating: 4.8, // Mocked rating
-      jobsCompleted: "1240+", // Mocked
-      lastBooked: d ? d.toLocaleDateString("en-GB") : "Unknown",
-      price: b.service.price || b.price || 0,
-      isServiceAvailable: true // Could be based on a flag if it existed
-    };
-  });
+  if (bookings.length === 0) {
+    return (
+      <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
+        <p className="text-slate-500">No completed bookings to rebook.</p>
+        <Link href="/bookings" className="mt-4 inline-block text-sm font-medium text-teal-600 hover:underline">
+          View all bookings
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Search and Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by service or professional..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <select
-              value={serviceTypeFilter}
-              onChange={(e) => { setServiceTypeFilter(e.target.value); setCurrentPage(1); }}
-              className="rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-sm outline-none focus:border-teal-500 bg-white"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat === "ALL" ? "All Services" : cat}</option>
-              ))}
-            </select>
+    <div className="flex flex-col gap-4">
+      {bookings.map((b) => (
+        <div key={b.id} className="flex items-center justify-between rounded-xl border bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-slate-900">{b.service.name}</span>
+            <span className="text-sm text-slate-500">
+              {b.professional?.user.name ?? "—"}
+              {b.slotStart ? ` • ${new Date(b.slotStart).toLocaleDateString("en-IN")}` : ""}
+            </span>
           </div>
-
-          <select
-            value={sortBy}
-            onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-            className="rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-sm outline-none focus:border-teal-500 bg-white"
-          >
-            <option value="NEWEST">Newest First</option>
-            <option value="OLDEST">Oldest First</option>
-            <option value="PRICE_HIGH">Price: High to Low</option>
-            <option value="PRICE_LOW">Price: Low to High</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Loading State */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-64 rounded-xl bg-slate-100 animate-pulse border border-slate-200"></div>
-          ))}
-        </div>
-      ) : mappedItems.length > 0 ? (
-        <>
-          {/* Grid */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mappedItems.map((item) => (
-              <QuickRebookCard key={item.id} item={item} />
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm font-medium text-slate-600 px-4">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        /* Empty State */
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 px-4 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 text-slate-400 mb-6">
-            <CalendarX2 size={40} />
-          </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">No Previous Bookings</h3>
-          <p className="text-slate-500 max-w-md mx-auto mb-8">
-            You haven't completed any services yet. Once you do, you'll be able to rebook them instantly from here with all your details prefilled.
-          </p>
           <Link
-            href="/dashboard"
-            className="rounded-lg bg-[#047260] px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-teal-700"
+            href={`/rebook/${b.id}`}
+            className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
           >
-            Browse Services
+            <RotateCw size={16} /> Rebook
           </Link>
         </div>
-      )}
+      ))}
     </div>
   );
 }

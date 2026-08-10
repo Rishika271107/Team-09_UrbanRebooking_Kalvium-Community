@@ -1,10 +1,8 @@
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { BookingDetailsSkeleton } from "@/components/dashboard/SkeletonLoaders";
-
-export default function BookingDetailsLoading() {
+export default function BookingDetailLoading() {
   return (
-    <DashboardLayout notificationCount={0}>
-      <BookingDetailsSkeleton />
-    </DashboardLayout>
+    <div className="flex flex-col gap-4 animate-pulse">
+      <div className="rounded-xl bg-slate-100 h-48" />
+      <div className="rounded-xl bg-slate-100 h-32" />
+    </div>
   );
 }

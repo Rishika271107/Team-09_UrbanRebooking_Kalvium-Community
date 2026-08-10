@@ -1,78 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 import { registerSchema } from "@/lib/validations";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
-    }
-
+    const body = await req.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Validation failed.", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
-
     const { fullName, email, phone, password } = parsed.data;
-
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json(
-        { error: "An account with this email already exists." },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Email already registered." }, { status: 409 });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    let user;
-    try {
-      user = await prisma.user.create({
-        data: {
-          name: fullName,
-          email,
-          phone,
-          password: hashedPassword,
-          role: "CUSTOMER",
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          role: true,
-          createdAt: true,
-        },
-      });
-    } catch (createErr) {
-      // Belt-and-braces: the findUnique check above has a race window, so a
-      // concurrent signup with the same email can still hit the DB's unique
-      // constraint on User.email. Catch it here instead of falling through
-      // to the generic 500 below.
-      if (
-        createErr instanceof Prisma.PrismaClientKnownRequestError &&
-        createErr.code === "P2002"
-      ) {
-        return NextResponse.json(
-          { error: "An account with this email already exists." },
-          { status: 409 }
-        );
-      }
-      throw createErr;
-    }
-
-    return NextResponse.json({ user }, { status: 201 });
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: { name: fullName, email, phone, password: hashed, role: "CUSTOMER" },
+    });
+    return NextResponse.json({ success: true, userId: user.id }, { status: 201 });
   } catch (err) {
     console.error("Register error:", err);
-    return NextResponse.json(
-      { error: "Something went wrong while creating your account. Please try again." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Registration failed." }, { status: 500 });
   }
 }

@@ -180,6 +180,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="customer@urban.co"
+                suppressHydrationWarning
                 {...register("email")}
                 className={`w-full px-3.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition-colors ${errors.email ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-[#D1D5DB] focus:border-[#00897B] focus:ring-2 focus:ring-[#00897B]/10"}`}
                 style={{
@@ -211,6 +212,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
+                  suppressHydrationWarning
                   {...register("password")}
                   className={`w-full pr-10 px-3.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition-colors ${errors.password ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-[#D1D5DB] focus:border-[#00897B] focus:ring-2 focus:ring-[#00897B]/10"}`}
                   style={{
@@ -253,6 +255,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
+              suppressHydrationWarning
               className="w-full text-white font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00897B] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 height: "40px",

@@ -167,6 +167,7 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
+                suppressHydrationWarning
                 className="w-full h-[46px] mt-2 bg-[#047260] hover:bg-[#035d4f] text-white text-sm font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#047260] focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Creating account…" : "Create account"}

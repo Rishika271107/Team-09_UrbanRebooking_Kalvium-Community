@@ -1,20 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
+import { useEffect, useState } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { TrendingUp, CheckCircle2, RotateCcw, Users } from "lucide-react";
 
 interface AnalyticsData {
   totals: {
@@ -35,162 +23,221 @@ interface AnalyticsData {
   }[];
 }
 
-const OUTCOME_COLORS: Record<string, string> = {
-  SUCCESS: "#047260",
-  PROFESSIONAL_UNAVAILABLE: "#F59E0B",
-  SLOT_BLOCKED: "#EF4444",
-  SERVICE_INELIGIBLE: "#94A3B8",
-  FAILED: "#DC2626",
+const COLORS = ["#0f766e", "#14b8a6", "#5eead4", "#99f6e4", "#ccfbf1", "#f87171"];
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft", PENDING: "Pending", CONFIRMED: "Confirmed",
+  COMPLETED: "Completed", CANCELLED: "Cancelled", DISPUTED: "Disputed",
+};
+
+const OUTCOME_LABELS: Record<string, string> = {
+  SUCCESS: "Success",
+  PROFESSIONAL_UNAVAILABLE: "Pro Unavailable",
+  SLOT_BLOCKED: "Slot Blocked",
+  SERVICE_INELIGIBLE: "Ineligible",
+  FAILED: "Failed",
 };
 
 export default function AdminAnalyticsClient() {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/admin/analytics");
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json?.error ?? "Failed to load analytics.");
-        setData(json as AnalyticsData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load analytics.");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetch("/api/admin/analytics")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) throw new Error(d.error);
+        setData(d);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false));
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 animate-pulse">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-28 rounded-xl bg-slate-100" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 text-sm">
+        {error ?? "Failed to load analytics."}
+      </div>
+    );
+  }
+
+  const statCards = [
+    {
+      label: "Total Rebooking Events",
+      value: data.totals.totalRebookingEvents,
+      icon: <RotateCcw size={22} className="text-teal-600" />,
+    },
+    {
+      label: "Successful Rebookings",
+      value: data.totals.successfulRebookings,
+      icon: <CheckCircle2 size={22} className="text-emerald-600" />,
+    },
+    {
+      label: "Success Rate",
+      value: `${Math.round(data.totals.rebookingSuccessRate * 100)}%`,
+      icon: <TrendingUp size={22} className="text-blue-600" />,
+    },
+    {
+      label: "Active Professionals",
+      value: data.professionalUtilization.filter((p) => p.active).length,
+      icon: <Users size={22} className="text-violet-600" />,
+    },
+  ];
+
+  const bookingStatusData = data.bookingStatusBreakdown.map((s) => ({
+    name: STATUS_LABELS[s.status] ?? s.status,
+    value: s.count,
+  }));
+
+  const rebookingOutcomeData = data.rebookingOutcomes.map((o) => ({
+    name: OUTCOME_LABELS[o.outcome] ?? o.outcome,
+    value: o.count,
+  }));
+
   return (
-    <div className="min-h-screen bg-[#F7F9FC] p-6 lg:p-10">
-      <div className="max-w-5xl mx-auto flex flex-col gap-8">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Operations dashboard</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Rebooking outcomes, booking status, and professional utilization.
-            </p>
-          </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="text-sm font-semibold text-[#047260] hover:underline"
+    <div className="flex flex-col gap-6">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {statCards.map((card, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex items-center gap-4"
           >
-            Sign out
-          </button>
-        </header>
-
-        {loading && <p className="text-sm text-slate-500">Loading analytics…</p>}
-        {error && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            {error}
+            <div className="h-11 w-11 rounded-full bg-slate-50 flex items-center justify-center flex-shrink-0">
+              {card.icon}
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">{card.label}</p>
+              <p className="text-2xl font-bold text-slate-900">{card.value}</p>
+            </div>
           </div>
-        )}
+        ))}
+      </div>
 
-        {data && (
-          <>
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <p className="text-xs text-slate-500">Rebooking success rate</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">
-                  {Math.round(data.totals.rebookingSuccessRate * 100)}%
-                </p>
-              </div>
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <p className="text-xs text-slate-500">Total rebooking attempts</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">
-                  {data.totals.totalRebookingEvents}
-                </p>
-              </div>
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <p className="text-xs text-slate-500">Successful rebookings</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">
-                  {data.totals.successfulRebookings}
-                </p>
-              </div>
-            </section>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Booking Status Breakdown */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 mb-4">Booking Status Breakdown</h2>
+          {bookingStatusData.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-8">No data yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={bookingStatusData} barCategoryGap="30%">
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {bookingStatusData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
 
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 className="font-semibold text-slate-900 mb-4">Rebooking outcomes</h2>
-                {data.rebookingOutcomes.length === 0 ? (
-                  <p className="text-sm text-slate-500">No rebooking events yet.</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <PieChart>
-                      <Pie
-                        data={data.rebookingOutcomes}
-                        dataKey="count"
-                        nameKey="outcome"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        label={(entry: any) => `${entry.outcome}: ${entry.count}`}
-                      >
-                        {data.rebookingOutcomes.map((entry) => (
-                          <Cell
-                            key={entry.outcome}
-                            fill={OUTCOME_COLORS[entry.outcome] ?? "#64748B"}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
+        {/* Rebooking Outcomes */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 mb-4">Rebooking Outcomes</h2>
+          {rebookingOutcomeData.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-8">No data yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={rebookingOutcomeData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="value"
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
+                  labelLine={false}
+                >
+                  {rebookingOutcomeData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 className="font-semibold text-slate-900 mb-4">Booking status breakdown</h2>
-                {data.bookingStatusBreakdown.length === 0 ? (
-                  <p className="text-sm text-slate-500">No bookings yet.</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={data.bookingStatusBreakdown}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="status" tick={{ fontSize: 12 }} />
-                      <YAxis allowDecimals={false} />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#047260" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </section>
-
-            <section className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="font-semibold text-slate-900 mb-4">Professional utilization</h2>
+      {/* Professional Utilization */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100">
+          <h2 className="text-base font-bold text-slate-900">Professional Utilization</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Name</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Slots</th>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Booked</th>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Utilization</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
               {data.professionalUtilization.length === 0 ? (
-                <p className="text-sm text-slate-500">No professionals yet.</p>
+                <tr>
+                  <td colSpan={5} className="text-center text-slate-400 py-8">
+                    No professionals found.
+                  </td>
+                </tr>
               ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.professionalUtilization} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" domain={[0, 100]} unit="%" allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(value: any) => `${value}%`} />
-                    <Bar dataKey="utilizationPct" fill="#1AA394" radius={[0, 6, 6, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                data.professionalUtilization.map((pro) => (
+                  <tr key={pro.professionalId} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-3 font-medium text-slate-900">{pro.name}</td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          pro.active
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {pro.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right text-slate-600">{pro.totalSlots}</td>
+                    <td className="px-5 py-3 text-right text-slate-600">{pro.bookedSlots}</td>
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-20 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-teal-500"
+                            style={{ width: `${pro.utilizationPct}%` }}
+                          />
+                        </div>
+                        <span className="text-slate-700 font-medium w-8 text-right">
+                          {pro.utilizationPct}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
-            </section>
-
-            <section className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="font-semibold text-slate-900 mb-4">Calendar slot mix</h2>
-              <ul className="flex gap-6 text-sm text-slate-600">
-                {data.slotTypeBreakdown.map((s) => (
-                  <li key={s.slotType}>
-                    <span className="font-semibold text-slate-900">{s.count}</span> {s.slotType.toLowerCase()}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </>
-        )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

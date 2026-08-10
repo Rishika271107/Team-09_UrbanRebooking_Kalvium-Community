@@ -24,7 +24,7 @@ export default auth((req) => {
   }
 
   // 2. Role-based redirections
-  const token = req.auth; // injected by next-auth v5 auth() wrapper
+  const token = req.auth;
 
   if (pathname.startsWith("/professional") && token?.user?.role !== "PROFESSIONAL") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
