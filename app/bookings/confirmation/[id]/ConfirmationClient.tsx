@@ -67,12 +67,7 @@ export default function ConfirmationClient({ booking }: { booking: any }) {
   return (
     <div className="relative flex flex-col items-center justify-center gap-8 py-8 md:py-12">
       
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-24 right-4 z-50 rounded-lg bg-slate-900 px-6 py-3 text-white shadow-lg transition-all animate-in fade-in slide-in-from-top-5">
-          {toastMessage}
-        </div>
-      )}
+
 
       {/* Header & Animation */}
       <div className="flex flex-col items-center gap-4 text-center">

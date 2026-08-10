@@ -48,14 +48,38 @@ const TOAST_STYLES: Record<ToastType, string> = {
   warning: "border-l-4 border-amber-500",
 };
 
+export interface ToastFunction {
+  (opts: Omit<Toast, "id">): void;
+  success(message: string): void;
+  error(message: string): void;
+  info(message: string): void;
+  warning(message: string): void;
+}
+
 /* Global toast dispatcher — works without React context */
 let _toastDispatch: ((toast: Omit<Toast, "id">) => void) | null = null;
 
-export function toast(opts: Omit<Toast, "id">) {
-  if (_toastDispatch) {
-    _toastDispatch(opts);
+export const toast: ToastFunction = Object.assign(
+  (opts: Omit<Toast, "id">) => {
+    if (_toastDispatch) {
+      _toastDispatch(opts);
+    }
+  },
+  {
+    success: (message: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "success" as const, title: "Success", message });
+    },
+    error: (message: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "error" as const, title: "Error", message });
+    },
+    info: (message: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "info" as const, title: "Info", message });
+    },
+    warning: (message: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "warning" as const, title: "Warning", message });
+    },
   }
-}
+);
 
 /** Drop-in toast container — mount once inside the root layout or DashboardLayout. */
 export function ToastProvider() {

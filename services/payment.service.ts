@@ -80,3 +80,15 @@ export async function setDefaultPaymentMethod(id: string, userId: string): Promi
     data: { isDefault: true },
   });
 }
+
+export async function createPaymentMethod(
+  userId: string,
+  data: { type: string; last4?: string; provider?: string; isDefault?: boolean }
+): Promise<PaymentMethodStub> {
+  return addPaymentMethod(userId, {
+    cardType: data.type,
+    lastFour: data.last4 || "0000",
+    provider: data.provider || "Unknown",
+    isDefault: data.isDefault,
+  });
+}

@@ -52,10 +52,12 @@ model User {
   updatedAt    DateTime @updatedAt
 
   professional  Professional?
-  bookings      Booking[]      @relation("CustomerBookings")
+  bookings      Booking[]       @relation("CustomerBookings")
   addresses     Address[]
   notifications Notification[]
   reviews       Review[]
+  PaymentMethod PaymentMethod[]
+  Payment       Payment[]
 
   @@index([email])
 }
@@ -89,18 +91,6 @@ model Address {
   @@index([userId])
 }
 
-model Notification {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title      String
-  message    String
-  readStatus Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  @@index([userId])
-}
-
 model Review {
   id             String       @id @default(cuid())
   bookingId      String       @unique
@@ -129,17 +119,17 @@ model Service {
 }
 
 model Booking {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation("CustomerBookings", fields: [userId], references: [id])
-  professionalId  String?
-  professional    Professional? @relation("ProfessionalBookings", fields: [professionalId], references: [id])
-  serviceId       String
-  service         Service  @relation(fields: [serviceId], references: [id])
-  address         String?
-  slotStart       DateTime?
-  slotEnd         DateTime?
-  status          BookingStatus @default(DRAFT)
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation("CustomerBookings", fields: [userId], references: [id])
+  professionalId String?
+  professional   Professional? @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  serviceId      String
+  service        Service       @relation(fields: [serviceId], references: [id])
+  address        String?
+  slotStart      DateTime?
+  slotEnd        DateTime?
+  status         BookingStatus @default(DRAFT)
 
   // Traceability back to the booking this one was rebooked from (FR9)
   sourceBookingId String?
@@ -162,12 +152,12 @@ model Booking {
 }
 
 model CalendarSlot {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   startTime      DateTime
   endTime        DateTime
-  slotType       SlotType @default(AVAILABLE)
+  slotType       SlotType     @default(AVAILABLE)
 
   bookingId String?  @unique
   booking   Booking? @relation(fields: [bookingId], references: [id])
@@ -179,7 +169,7 @@ model CalendarSlot {
 }
 
 model RebookingEvent {
-  id       String @id @default(cuid())
+  id String @id @default(cuid())
 
   sourceBookingId String
   sourceBooking   Booking @relation("SourceBookingEvents", fields: [sourceBookingId], references: [id])
@@ -197,7 +187,7 @@ model Notification {
   id         String   @id @default(cuid())
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type       String
+  type       String   @default("info")
   title      String
   message    String
   readStatus Boolean  @default(false)
@@ -208,14 +198,36 @@ model Notification {
 }
 
 model PaymentMethod {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardType   String
-  lastFour   String
-  provider   String
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardType  String
+  lastFour  String
+  provider  String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Float
+  status        String
+  paymentMethod String?
+  transactionId String?  @unique
+  orderId       String   @unique
+  paymentId     String?
+  signature     String?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([orderId])
 }
