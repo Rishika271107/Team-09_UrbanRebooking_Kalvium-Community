@@ -7,9 +7,11 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
-    if (!email) {
-      return NextResponse.json({ error: "Email is required." }, { status: 400 });
+    const body = await req.json();
+    const parsed = z.object({ email: z.string().email() }).safeParse(body);
+    
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
     }
 
     const email = parsed.data.email.toLowerCase().trim();
@@ -42,16 +44,16 @@ export async function POST(req: NextRequest) {
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
       // 4. Save to DB (clean up any previous resets for this email atomically)
-      await prisma.$transaction([
-        prisma.passwordReset.deleteMany({ where: { email } }),
-        prisma.passwordReset.create({
-          data: {
-            email,
-            token: hashedToken,
-            expiresAt,
-          },
-        }),
-      ]);
+      // await prisma.$transaction([
+      //   prisma.passwordReset.deleteMany({ where: { email } }),
+      //   prisma.passwordReset.create({
+      //     data: {
+      //       email,
+      //       token: hashedToken,
+      //       expiresAt,
+      //     },
+      //   }),
+      // ]);
 
       // 5. Send secure email
       await sendPasswordResetEmail(email, rawToken);

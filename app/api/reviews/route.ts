@@ -14,10 +14,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
-    const review = await createReview({
-      userId: session.user.id,
-      ...parsed.data,
-    });
+    const review = await createReview(
+      session.user.id,
+      parsed.data
+    );
     return NextResponse.json({ review }, { status: 201 });
   } catch (err: any) {
     console.error("Create review error:", err);
