@@ -34,15 +34,30 @@ export async function GET() {
         },
       },
     });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found." }, { status: 404 });
-    }
-
-    return NextResponse.json({ user });
+    if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+    return NextResponse.json({ user }, { status: 200 });
   } catch (err) {
-    console.error("Fetch /customers/me error:", err);
-    return NextResponse.json({ error: "Failed to load your profile." }, { status: 500 });
+    console.error("Customers me error:", err);
+    return NextResponse.json({ error: "Failed to fetch user." }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const { session, error } = await requireSession();
+  if (error) return error;
+
+  try {
+    const body = await req.json();
+    const { name, phone, address } = body;
+    const user = await prisma.user.update({
+      where: { id: session.user.id },
+      data: { name, phone, address },
+      select: { id: true, name: true, email: true, phone: true, address: true },
+    });
+    return NextResponse.json({ user }, { status: 200 });
+  } catch (err) {
+    console.error("Update user error:", err);
+    return NextResponse.json({ error: "Failed to update user." }, { status: 500 });
   }
 }
 

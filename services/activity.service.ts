@@ -1,19 +1,23 @@
 import { prisma } from "@/lib/prisma";
 
-/**
- * Returns recent rebooking events for a user as their activity feed.
- * Maps to RebookingEvent in the Prisma schema (the Activity model does not exist).
- */
-export async function getUserActivities(userId: string) {
-  return await prisma.rebookingEvent.findMany({
-    where: {
-      sourceBooking: { userId },
-    },
+export async function getUserActivity(userId: string, limit = 10) {
+  const bookings = await prisma.booking.findMany({
+    where: { userId },
     include: {
-      sourceBooking: { include: { service: true } },
-      newBooking: true,
+      service: true,
+      professional: { include: { user: { select: { name: true } } } },
     },
-    orderBy: { createdAt: "desc" },
-    take: 10,
+    orderBy: { updatedAt: "desc" },
+    take: limit,
   });
+
+  return bookings.map((b) => ({
+    id: b.id,
+    title: b.service.name,
+    professionalName: b.professional?.user.name ?? null,
+    date: b.slotStart
+      ? new Date(b.slotStart).toLocaleDateString("en-IN")
+      : new Date(b.createdAt).toLocaleDateString("en-IN"),
+    status: b.status,
+  }));
 }

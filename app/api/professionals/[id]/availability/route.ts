@@ -1,68 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/session";
 import { availabilityQuerySchema } from "@/lib/validations";
 
-// Any authenticated user can view any professional's calendar for any date —
-// there's no ownership scoping (e.g. "only customers who've booked this pro
-// before"). This is a deliberate choice, not an oversight: professional ids
-// are unguessable cuid()s, and the customer rebooking flow needs to look up
-// availability for a professional the customer hasn't necessarily booked in
-// this session yet. If you add a public "browse professionals" feature,
-// revisit this — wider id exposure would make enumeration more practical.
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireSession();
-  if (error) return error;
-
-  const { id } = await context.params;
+  const { id } = await params;
   const { searchParams } = new URL(req.url);
-
-  const parsed = availabilityQuerySchema.safeParse({
-    date: searchParams.get("date") ?? "",
-  });
-
+  const parsed = availabilityQuerySchema.safeParse({ date: searchParams.get("date") });
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "A valid 'date' query parameter (YYYY-MM-DD) is required." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
   try {
-    const professional = await prisma.professional.findUnique({
-      where: { id },
-      include: { user: { select: { name: true } } },
-    });
-
-    if (!professional) {
-      return NextResponse.json({ error: "Professional not found." }, { status: 404 });
-    }
-
-    const dayStart = new Date(`${parsed.data.date}T00:00:00.000Z`);
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const date = new Date(parsed.data.date);
+    const start = new Date(date); start.setHours(0, 0, 0, 0);
+    const end = new Date(date); end.setHours(23, 59, 59, 999);
 
     const slots = await prisma.calendarSlot.findMany({
-      where: {
-        professionalId: id,
-        startTime: { gte: dayStart, lt: dayEnd },
-      },
+      where: { professionalId: id, startTime: { gte: start, lte: end } },
       orderBy: { startTime: "asc" },
     });
-
-    return NextResponse.json({
-      professional: {
-        id: professional.id,
-        name: professional.user.name,
-        active: professional.active,
-      },
-      date: parsed.data.date,
-      slots,
-    });
+    return NextResponse.json({ slots }, { status: 200 });
   } catch (err) {
-    console.error("Fetch availability error:", err);
-    return NextResponse.json({ error: "Failed to load availability." }, { status: 500 });
+    console.error("Availability error:", err);
+    return NextResponse.json({ error: "Failed to fetch availability." }, { status: 500 });
   }
 }

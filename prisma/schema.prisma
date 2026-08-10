@@ -1,42 +1,12 @@
-// Prisma schema for the Urban Company One-Click Rebooking System
-// See urban-company-rebooking-prd.md for the data model this implements.
+// Prisma schema for the Urban Company One-Click Rebooking System (SQLite version)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-enum Role {
-  CUSTOMER
-  PROFESSIONAL
-  ADMIN
-}
-
-enum BookingStatus {
-  DRAFT
-  PENDING
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-  DISPUTED
-}
-
-enum SlotType {
-  AVAILABLE
-  BLOCKED
-  BOOKED
-}
-
-enum RebookingOutcome {
-  SUCCESS
-  PROFESSIONAL_UNAVAILABLE
-  SLOT_BLOCKED
-  SERVICE_INELIGIBLE
-  FAILED
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -51,11 +21,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  professional  Professional?
-  bookings      Booking[]      @relation("CustomerBookings")
-  addresses     Address[]
-  notifications Notification[]
-  reviews       Review[]
+  professional    Professional?
+  bookings        Booking[]      @relation("CustomerBookings")
+  addresses       Address[]
+  notifications   Notification[]
+  reviews         Review[]
+  paymentMethods  PaymentMethod[]
 
   @@index([email])
 }
@@ -64,7 +35,7 @@ model Professional {
   id            String   @id @default(cuid())
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skills        String[]
+  skills        String   @default("") // Commma separated string
   active        Boolean  @default(true)
   rating        Float    @default(5.0)
   jobsCompleted Int      @default(0)
@@ -85,18 +56,6 @@ model Address {
   pincode     String
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())
-
-  @@index([userId])
-}
-
-model Notification {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title      String
-  message    String
-  readStatus Boolean  @default(false)
-  createdAt  DateTime @default(now())
 
   @@index([userId])
 }
@@ -139,9 +98,8 @@ model Booking {
   address         String?
   slotStart       DateTime?
   slotEnd         DateTime?
-  status          BookingStatus @default(DRAFT)
+  status          String   @default("DRAFT")
 
-  // Traceability back to the booking this one was rebooked from (FR9)
   sourceBookingId String?
   sourceBooking   Booking?  @relation("Rebookings", fields: [sourceBookingId], references: [id])
   rebookings      Booking[] @relation("Rebookings")
@@ -167,7 +125,7 @@ model CalendarSlot {
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   startTime      DateTime
   endTime        DateTime
-  slotType       SlotType @default(AVAILABLE)
+  slotType       String   @default("AVAILABLE")
 
   bookingId String?  @unique
   booking   Booking? @relation(fields: [bookingId], references: [id])
@@ -187,7 +145,7 @@ model RebookingEvent {
   newBookingId String?
   newBooking   Booking? @relation("NewBookingEvents", fields: [newBookingId], references: [id])
 
-  outcome   RebookingOutcome
+  outcome   String
   createdAt DateTime         @default(now())
 
   @@index([sourceBookingId])

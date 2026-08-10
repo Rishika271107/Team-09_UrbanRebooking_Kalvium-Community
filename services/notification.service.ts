@@ -37,6 +37,15 @@ export async function clearAllNotifications(userId: string) {
   return prisma.notification.deleteMany({ where: { userId } });
 }
 
-export async function createNotification(userId: string, title: string, message: string) {
-  return prisma.notification.create({ data: { userId, title, message } });
+export async function createNotification(
+  userId: string,
+  title: string,
+  message: string,
+  type = "GENERAL",
+  iconName = "bell"
+) {
+  return prisma.notification.create({
+    data: { userId, title, message, type, iconName },
+  });
 }
+
