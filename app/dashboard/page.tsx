@@ -6,7 +6,7 @@ import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { UpcomingServices } from "@/components/dashboard/UpcomingServices";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { RecommendedServices } from "@/components/dashboard/RecommendedServices";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 import { getUserBookingsPaginated } from "@/services/booking.service";
 import { prisma } from "@/lib/prisma";
 
@@ -67,16 +67,7 @@ export default async function DashboardPage() {
     status: b.status,
   }));
 
-  // Recommended services
-  const services = await prisma.service.findMany({ take: 4 });
-  const recommendedServices = services.map((s) => ({
-    id: s.id,
-    name: s.name,
-    category: s.category,
-    price: s.price,
-    rating: 4.5,
-    image: "",
-  }));
+
 
   const firstName = (session.user.name ?? "User").split(" ")[0];
 
@@ -95,7 +86,7 @@ export default async function DashboardPage() {
             <RecentActivity activities={activities} />
           </div>
           <div>
-            <RecommendedServices services={recommendedServices} />
+            <QuickActions />
           </div>
         </div>
       </div>

@@ -42,25 +42,6 @@ export async function GET() {
   }
 }
 
-export async function PATCH(req: NextRequest) {
-  const { session, error } = await requireSession();
-  if (error) return error;
-
-  try {
-    const body = await req.json();
-    const { name, phone, address } = body;
-    const user = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { name, phone, address },
-      select: { id: true, name: true, email: true, phone: true, address: true },
-    });
-    return NextResponse.json({ user }, { status: 200 });
-  } catch (err) {
-    console.error("Update user error:", err);
-    return NextResponse.json({ error: "Failed to update user." }, { status: 500 });
-  }
-}
-
 // ── PATCH /api/customers/me ───────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   // 1. Authentication — reject unauthenticated callers immediately.

@@ -156,7 +156,7 @@ function CancelModal({
     startTransition(async () => {
       try {
         const res = await fetch(`/api/bookings/${bookingId}/cancel`, {
-          method: "PATCH",
+          method: "POST",
         });
         if (!res.ok) throw new Error("Failed");
         onSuccess(bookingId);

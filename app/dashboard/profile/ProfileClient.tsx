@@ -225,7 +225,6 @@ export default function ProfileClient({
   const onAddAddress = (data: z.infer<typeof addressSchema>) => {
     const optimistic: AddressStub = {
       id: `tmp-${Date.now()}`,
-      userId: user.id,
       addressLine: `${data.addressLine}, ${data.city}, ${data.state} - ${data.pincode}`,
       city: data.city,
       state: data.state,
@@ -266,8 +265,8 @@ export default function ProfileClient({
   const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
 
-  const handleAddPayment = (method: any) => {
-    setPaymentMethods((prev) => [...prev, method]);
+  const handleAddPayment = async (method: { cardType: string; lastFour: string; provider: string }) => {
+    setPaymentMethods((prev) => [...prev, { ...method, id: Date.now().toString(), isDefault: prev.length === 0 }]);
     setShowAddPaymentModal(false);
   };
   const handleDeletePayment = (id: string) => {

@@ -1,4 +1,5 @@
 import React from 'react';
+import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import RebookFormClient from '@/app/rebook/[id]/RebookFormClient';
@@ -54,6 +55,7 @@ vi.mock('@/components/rebook/PriceBreakdown', () => ({
 
 const defaultProps = {
   originalBookingId: 'booking-1',
+  sourceBookingId: 'booking-1',
   addresses: [
     {
       id: 'addr-1',

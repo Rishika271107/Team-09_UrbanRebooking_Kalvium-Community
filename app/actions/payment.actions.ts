@@ -1,15 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createPaymentMethod, deletePaymentMethod, setDefaultPaymentMethod } from "@/services/payment.service";
+import { addPaymentMethod, deletePaymentMethod, setDefaultPaymentMethod } from "@/services/payment.service";
 import { auth } from "@/auth";
 
-export async function addPaymentMethodAction(data: { type: string; last4?: string; provider?: string; isDefault?: boolean }) {
+export async function addPaymentMethodAction(data: { cardType: string; lastFour: string; provider: string; isDefault?: boolean }) {
   try {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    await createPaymentMethod(session.user.id, data);
+    await addPaymentMethod(session.user.id, data);
     revalidatePath("/dashboard/profile");
     return { success: true };
   } catch (error) {

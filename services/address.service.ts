@@ -1,5 +1,15 @@
 import { prisma } from "@/lib/prisma";
 
+export interface AddressStub {
+  id: string;
+  addressLine: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+}
+
+
 export async function getUserAddresses(userId: string) {
   return prisma.address.findMany({
     where: { userId },

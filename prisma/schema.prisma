@@ -15,18 +15,18 @@ model User {
   email        String   @unique
   phone        String?
   password     String
-  role         Role     @default(CUSTOMER)
+  role         String   @default("CUSTOMER")
   address      String?
   profileImage String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  professional    Professional?
-  bookings        Booking[]      @relation("CustomerBookings")
-  addresses       Address[]
-  notifications   Notification[]
-  reviews         Review[]
-  paymentMethods  PaymentMethod[]
+  professional   Professional?
+  bookings       Booking[]       @relation("CustomerBookings")
+  addresses      Address[]
+  notifications  Notification[]
+  reviews        Review[]
+  paymentMethods PaymentMethod[]
 
   @@index([email])
 }
@@ -88,17 +88,17 @@ model Service {
 }
 
 model Booking {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation("CustomerBookings", fields: [userId], references: [id])
-  professionalId  String?
-  professional    Professional? @relation("ProfessionalBookings", fields: [professionalId], references: [id])
-  serviceId       String
-  service         Service  @relation(fields: [serviceId], references: [id])
-  address         String?
-  slotStart       DateTime?
-  slotEnd         DateTime?
-  status          String   @default("DRAFT")
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation("CustomerBookings", fields: [userId], references: [id])
+  professionalId String?
+  professional   Professional? @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  serviceId      String
+  service        Service       @relation(fields: [serviceId], references: [id])
+  address        String?
+  slotStart      DateTime?
+  slotEnd        DateTime?
+  status         String        @default("DRAFT")
 
   sourceBookingId String?
   sourceBooking   Booking?  @relation("Rebookings", fields: [sourceBookingId], references: [id])
@@ -120,12 +120,12 @@ model Booking {
 }
 
 model CalendarSlot {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   startTime      DateTime
   endTime        DateTime
-  slotType       String   @default("AVAILABLE")
+  slotType       String       @default("AVAILABLE")
 
   bookingId String?  @unique
   booking   Booking? @relation(fields: [bookingId], references: [id])
@@ -137,7 +137,7 @@ model CalendarSlot {
 }
 
 model RebookingEvent {
-  id       String @id @default(cuid())
+  id String @id @default(cuid())
 
   sourceBookingId String
   sourceBooking   Booking @relation("SourceBookingEvents", fields: [sourceBookingId], references: [id])
@@ -146,7 +146,7 @@ model RebookingEvent {
   newBooking   Booking? @relation("NewBookingEvents", fields: [newBookingId], references: [id])
 
   outcome   String
-  createdAt DateTime         @default(now())
+  createdAt DateTime @default(now())
 
   @@index([sourceBookingId])
 }
@@ -166,14 +166,40 @@ model Notification {
 }
 
 model PaymentMethod {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardType   String
-  lastFour   String
-  provider   String
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardType  String
+  lastFour  String
+  provider  String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  bookingId    String
+  booking      Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount       Float
+  status       String   @default("PENDING") // PENDING | SUCCESS | FAILED | CANCELLED
+  orderId      String   @unique // Razorpay order ID
+  paymentId    String? // Razorpay payment ID (after success)
+  signature    String? // Razorpay signature (after success)
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([bookingId])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique // Hashed SHA-256 token
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
