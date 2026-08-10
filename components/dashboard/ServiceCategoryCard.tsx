@@ -1,48 +1,28 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Home, Scissors, Wind, Zap, Droplets, Paintbrush, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
-
 export interface CategoryProps {
   id: string;
   name: string;
   startingPrice: number;
-  icon: string;
+  icon: any;
   color: string;
 }
 
 interface ServiceCategoryCardProps {
   category: CategoryProps;
+  onClick?: () => void;
 }
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  Home,
-  Scissors,
-  Wind,
-  Zap,
-  Droplets,
-  Paintbrush,
-  ShieldCheck,
-  Sparkles,
-};
-
-export function ServiceCategoryCard({ category }: ServiceCategoryCardProps) {
-  const Icon = ICON_MAP[category.icon] || Home;
-
+export function ServiceCategoryCard({ category, onClick }: ServiceCategoryCardProps) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border bg-white p-6 text-center shadow-sm transition-all hover:border-teal-100 hover:shadow-md"
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-teal-300 hover:shadow-md`}
     >
-      <div className={`flex h-16 w-16 items-center justify-center rounded-full ${category.color || 'bg-slate-100 text-slate-600'}`}>
-        <Icon size={28} />
+      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${category.color}`}>
+        <span className="text-lg">🔧</span>
       </div>
-      <div className="flex flex-col gap-1">
-        <span className="font-semibold text-slate-900">{category.name}</span>
-        <span className="text-xs text-slate-500">From {formatCurrency(category.startingPrice)}</span>
-      </div>
-    </motion.div>
+      <span className="text-sm font-medium text-slate-700">{category.name}</span>
+    </button>
   );
 }

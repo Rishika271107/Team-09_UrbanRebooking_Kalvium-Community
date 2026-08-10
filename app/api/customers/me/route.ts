@@ -34,15 +34,11 @@ export async function GET() {
         },
       },
     });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found." }, { status: 404 });
-    }
-
-    return NextResponse.json({ user });
+    if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
+    return NextResponse.json({ user }, { status: 200 });
   } catch (err) {
-    console.error("Fetch /customers/me error:", err);
-    return NextResponse.json({ error: "Failed to load your profile." }, { status: 500 });
+    console.error("Customers me error:", err);
+    return NextResponse.json({ error: "Failed to fetch user." }, { status: 500 });
   }
 }
 

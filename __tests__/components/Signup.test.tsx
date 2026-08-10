@@ -3,14 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SignupPage from '@/app/signup/page';
 import { useRouter } from 'next/navigation';
-import { registerUser } from '@/lib/actions';
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
-}));
-
-vi.mock('@/lib/actions', () => ({
-  registerUser: vi.fn(),
 }));
 
 vi.mock('next-auth/react', async (importOriginal) => {
@@ -61,7 +56,10 @@ describe('SignupPage', () => {
   });
 
   it('handles successful registration', async () => {
-    (registerUser as any).mockResolvedValueOnce({ error: null });
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ user: { id: "1" } }),
+    });
 
     render(<SignupPage />);
     fireEvent.change(screen.getByPlaceholderText('Enter your full name'), { target: { value: 'Jane Doe' } });
@@ -75,12 +73,7 @@ describe('SignupPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(registerUser).toHaveBeenCalledWith(expect.objectContaining({
-        fullName: 'Jane Doe',
-        email: 'jane@example.com',
-        phone: '1234567890',
-        password: 'password123',
-      }));
+      expect(global.fetch).toHaveBeenCalledWith("/api/auth/register", expect.any(Object));
       expect(screen.getByText('Account created!')).toBeInTheDocument();
     });
   });

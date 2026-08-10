@@ -16,6 +16,10 @@ import {
   setDefaultAddressAction,
 } from "@/app/actions/address.actions";
 import type { AddressStub } from "@/services/address.service";
+import { AddPaymentModal } from "@/components/payment/AddPaymentModal";
+import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
+import { PaymentList } from "@/components/payment/PaymentList";
+import { PaymentSkeleton } from "@/components/payment/PaymentSkeleton";
 
 import { AddPaymentModal } from "@/components/payment/AddPaymentModal";
 import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
@@ -226,7 +230,6 @@ export default function ProfileClient({
   const onAddAddress = (data: z.infer<typeof addressSchema>) => {
     const optimistic: AddressStub = {
       id: `tmp-${Date.now()}`,
-      userId: user.id,
       addressLine: `${data.addressLine}, ${data.city}, ${data.state} - ${data.pincode}`,
       city: data.city,
       state: data.state,
@@ -331,9 +334,6 @@ export default function ProfileClient({
       if (res.ok) {
         setPaymentMethods(prev => prev.map(p => ({ ...p, isDefault: p.id === id })));
       }
-    } catch (err) {
-      console.error(err);
-    }
   };
 
   /* Notification toggles */

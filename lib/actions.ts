@@ -1,44 +1,48 @@
 "use server";
 
+import { auth } from "@/auth";
 import { z } from "zod";
-import { prisma } from "./prisma";
-import bcrypt from "bcryptjs";
+import { getBookingById } from "@/services/booking.service";
+import { logUnexpectedError } from "@/lib/logger";
 
-const signupSchema = z.object({
-  fullName: z.string().min(1, "Full name is required."),
-  email: z.string().min(1, "Email is required.").email("Please enter a valid email address."),
-  phone: z.string().min(1, "Phone number is required."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
+const rebookSchema = z.object({
+  originalBookingId: z.string().min(1, "Original booking ID is required"),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().min(1, "Time is required"),
+  addressId: z.string().min(1, "Address is required"),
+  phone: z.string().min(10, "Phone number is required"),
+  paymentMethod: z.enum(["CREDIT_CARD", "DEBIT_CARD", "UPI", "CASH"]),
 });
 
-export async function registerUser(formData: z.infer<typeof signupSchema>) {
+export async function rebookAction(formData: FormData) {
   try {
-    const parsed = signupSchema.safeParse(formData);
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { error: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
+    const data = Object.fromEntries(formData.entries());
+    const parsed = rebookSchema.safeParse(data);
+
     if (!parsed.success) {
-      return { error: "Invalid form data" };
+      return { error: parsed.error.issues[0].message };
     }
 
-    const { email, password, fullName, phone } = parsed.data;
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const { originalBookingId } = parsed.data;
 
-    if (existing) {
-      return { error: "User already exists with this email." };
+    const originalBooking = await getBookingById(originalBookingId);
+    if (!originalBooking) {
+      return { error: "Original booking not found" };
     }
 
-    const passwordHash = bcrypt.hashSync(password, 10);
-    
-    await prisma.user.create({
-      data: {
-        email,
-        name: fullName,
-        phone,
-        password: passwordHash,
-        role: "CUSTOMER",
-      }
-    });
+    if (originalBooking.userId !== userId) {
+      return { error: "Unauthorized access to this booking" };
+    }
 
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Failed to register." };
+  } catch (error: unknown) {
+    logUnexpectedError("rebookAction error", error);
+    return { error: "An unexpected error occurred during rebooking." };
   }
 }

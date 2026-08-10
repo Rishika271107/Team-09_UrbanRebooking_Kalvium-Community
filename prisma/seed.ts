@@ -48,7 +48,7 @@ async function main() {
     update: {},
     create: {
       userId: proUser.id,
-      skills: ["AC Repair", "Deep Cleaning", "Plumbing"],
+      skills: "AC Repair, Deep Cleaning, Plumbing",
       active: true,
       rating: 4.8,
     },
@@ -148,6 +148,7 @@ async function main() {
       title: "Welcome to Urban Company",
       message: "Your account is set up. Book a service to get started.",
       readStatus: false,
+      type: "SYSTEM",
     },
   });
 

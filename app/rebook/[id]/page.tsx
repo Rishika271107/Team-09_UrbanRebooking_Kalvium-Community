@@ -6,6 +6,7 @@ import { getUserNotifications } from "@/services/notification.service";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import RebookFormClient from "./RebookFormClient";
+import DemoRebookClient from "./DemoRebookClient";
 
 export default async function RebookPage({
   params,
@@ -16,8 +17,25 @@ export default async function RebookPage({
   if (!session?.user?.id) {
     redirect("/login");
   }
+
   const resolvedParams = await params;
   const bookingId = resolvedParams.id;
+
+  // ── Demo flow: IDs starting with "demo-" bypass DB and use client-side mock data
+  const isDemo = bookingId.startsWith("demo-");
+
+  if (isDemo) {
+    const notifications = await getUserNotifications(session.user.id);
+    const unreadNotificationsCount = notifications.filter((n: any) => !n.readStatus).length;
+
+    return (
+      <DashboardLayout notificationCount={unreadNotificationsCount}>
+        <DemoRebookClient demoId={bookingId} />
+      </DashboardLayout>
+    );
+  }
+
+  // ── Real flow: fetch booking from DB
   const booking = await getBookingById(bookingId);
   if (!booking || booking.userId !== session.user.id) {
     redirect("/bookings");

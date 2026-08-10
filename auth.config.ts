@@ -1,24 +1,31 @@
-import type { NextAuthConfig } from 'next-auth';
+import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth, request: { nextUrl } }: any) {
       const isLoggedIn = !!auth?.user;
-      const protectedPaths = ['/dashboard', '/bookings', '/rebook'];
-      const isOnProtectedRoute = protectedPaths.some(path => nextUrl.pathname.startsWith(path));
-      if (isOnProtectedRoute) {
+      const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
+      const isOnBookings = nextUrl.pathname.startsWith("/bookings");
+      const isOnRebook = nextUrl.pathname.startsWith("/rebook");
+      const isOnAdmin = nextUrl.pathname.startsWith("/admin");
+      const isOnProfessional = nextUrl.pathname.startsWith("/professional");
+
+      const isProtected =
+        isOnDashboard || isOnBookings || isOnRebook || isOnAdmin || isOnProfessional;
+
+      if (isProtected) {
         if (isLoggedIn) return true;
         return false; // Redirect unauthenticated users to login page
       } else if (isLoggedIn) {
-        if (nextUrl.pathname === '/login' || nextUrl.pathname === '/signup' || nextUrl.pathname === '/forgot-password') {
-            return Response.redirect(new URL('/dashboard', nextUrl));
+        if (nextUrl.pathname === "/login" || nextUrl.pathname === "/signup") {
+          return Response.redirect(new URL("/dashboard", nextUrl));
         }
       }
       return true;
     },
   },
-  providers: [], // Add providers with an empty array for now
+  providers: [], // configured in auth.ts
 } satisfies NextAuthConfig;

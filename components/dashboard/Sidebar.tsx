@@ -14,7 +14,7 @@ import { signOut } from "next-auth/react";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Booking History", href: "/bookings", icon: History },
+  { name: "History", href: "/bookings", icon: History },
   { name: "Rebook", href: "/rebook", icon: Repeat },
   { name: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: 2 },
   { name: "Profile", href: "/dashboard/profile", icon: User },

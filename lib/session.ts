@@ -1,26 +1,20 @@
-import { type Session } from "next-auth";
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { NextResponse } from "next/server";
 
 /**
- * Resolves the current server-side session for use inside API route handlers.
- * Returns a 401 JSON response in `error` when there is no authenticated user,
- * so callers can just do:
- *
- *   const { session, error } = await requireSession();
- *   if (error) return error;
+ * Helper to require a valid session in API route handlers.
+ * Returns `{ session }` on success or `{ error: NextResponse }` on failure.
+ * Uses NextAuth v5 `auth()` instead of the deprecated v4 `getServerSession`.
  */
-export async function requireSession(): Promise<
-  { session: Session; error: null } | { session: null; error: NextResponse }
-> {
+export async function requireSession() {
   const session = await auth();
 
   if (!session?.user?.id) {
     return {
-      session: null,
-      error: NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 }),
+      session: null as never,
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };
   }
 
-  return { session, error: null };
+  return { session, error: null as never };
 }

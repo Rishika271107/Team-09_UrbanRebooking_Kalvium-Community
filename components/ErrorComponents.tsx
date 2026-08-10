@@ -50,10 +50,10 @@ const TOAST_STYLES: Record<ToastType, string> = {
 
 export interface ToastFunction {
   (opts: Omit<Toast, "id">): void;
-  success(message: string): void;
-  error(message: string): void;
-  info(message: string): void;
-  warning(message: string): void;
+  success(title: string, message?: string): void;
+  error(title: string, message?: string): void;
+  info(title: string, message?: string): void;
+  warning(title: string, message?: string): void;
 }
 
 /* Global toast dispatcher — works without React context */
@@ -66,20 +66,22 @@ export const toast: ToastFunction = Object.assign(
     }
   },
   {
-    success: (message: string) => {
-      if (_toastDispatch) _toastDispatch({ type: "success" as const, title: "Success", message });
+    success: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "success" as const, title, message });
     },
-    error: (message: string) => {
-      if (_toastDispatch) _toastDispatch({ type: "error" as const, title: "Error", message });
+    error: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "error" as const, title, message });
     },
-    info: (message: string) => {
-      if (_toastDispatch) _toastDispatch({ type: "info" as const, title: "Info", message });
+    info: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "info" as const, title, message });
     },
-    warning: (message: string) => {
-      if (_toastDispatch) _toastDispatch({ type: "warning" as const, title: "Warning", message });
+    warning: (title: string, message?: string) => {
+      if (_toastDispatch) _toastDispatch({ type: "warning" as const, title, message });
     },
   }
 );
+
+>>>>>>> origin/main
 
 /** Drop-in toast container — mount once inside the root layout or DashboardLayout. */
 export function ToastProvider() {

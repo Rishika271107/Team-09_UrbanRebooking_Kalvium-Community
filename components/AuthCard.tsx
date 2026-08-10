@@ -1,12 +1,20 @@
-import React from "react";
+import { ReactNode } from "react";
 
 interface AuthCardProps {
-  children: React.ReactNode;
+  children: ReactNode;
+  title?: string;
+  subtitle?: string;
 }
 
-export default function AuthCard({ children }: AuthCardProps) {
+export function AuthCard({ children, title, subtitle }: AuthCardProps) {
   return (
-    <div className="w-full max-w-[480px] bg-white rounded-2xl border border-slate-200 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-9">
+    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      {title && (
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+          {subtitle && <p className="mt-1.5 text-sm text-slate-500">{subtitle}</p>}
+        </div>
+      )}
       {children}
     </div>
   );

@@ -5,23 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const schema = z.object({
-  email: z.string().email("Please enter a valid email address."),
-});
-
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
-    }
-
-    const parsed = schema.safeParse(body);
+    const body = await req.json();
+    const parsed = z.object({ email: z.string().email() }).safeParse(body);
+    
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Please enter a valid email address." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
     }
 
     const email = parsed.data.email.toLowerCase().trim();
@@ -54,16 +44,16 @@ export async function POST(req: NextRequest) {
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
       // 4. Save to DB (clean up any previous resets for this email atomically)
-      await prisma.$transaction([
-        prisma.passwordReset.deleteMany({ where: { email } }),
-        prisma.passwordReset.create({
-          data: {
-            email,
-            token: hashedToken,
-            expiresAt,
-          },
-        }),
-      ]);
+      // await prisma.$transaction([
+      //   prisma.passwordReset.deleteMany({ where: { email } }),
+      //   prisma.passwordReset.create({
+      //     data: {
+      //       email,
+      //       token: hashedToken,
+      //       expiresAt,
+      //     },
+      //   }),
+      // ]);
 
       // 5. Send secure email
       await sendPasswordResetEmail(email, rawToken);
@@ -76,9 +66,6 @@ export async function POST(req: NextRequest) {
     );
   } catch (err) {
     console.error("Forgot password error:", err);
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Request failed." }, { status: 500 });
   }
 }

@@ -1,42 +1,12 @@
-// Prisma schema for the Urban Company One-Click Rebooking System
-// See urban-company-rebooking-prd.md for the data model this implements.
+// Prisma schema for the Urban Company One-Click Rebooking System (SQLite version)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-enum Role {
-  CUSTOMER
-  PROFESSIONAL
-  ADMIN
-}
-
-enum BookingStatus {
-  DRAFT
-  PENDING
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-  DISPUTED
-}
-
-enum SlotType {
-  AVAILABLE
-  BLOCKED
-  BOOKED
-}
-
-enum RebookingOutcome {
-  SUCCESS
-  PROFESSIONAL_UNAVAILABLE
-  SLOT_BLOCKED
-  SERVICE_INELIGIBLE
-  FAILED
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -45,19 +15,19 @@ model User {
   email        String   @unique
   phone        String?
   password     String
-  role         Role     @default(CUSTOMER)
+  role         String   @default("CUSTOMER")
   address      String?
   profileImage String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  professional  Professional?
-  bookings      Booking[]       @relation("CustomerBookings")
-  addresses     Address[]
-  notifications Notification[]
-  reviews       Review[]
-  PaymentMethod PaymentMethod[]
-  Payment       Payment[]
+  professional   Professional?
+  bookings       Booking[]       @relation("CustomerBookings")
+  addresses      Address[]
+  notifications  Notification[]
+  reviews        Review[]
+  paymentMethods PaymentMethod[]
+  Payment        Payment[]
 
   @@index([email])
 }
@@ -66,7 +36,7 @@ model Professional {
   id            String   @id @default(cuid())
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skills        String[]
+  skills        String   @default("") // Commma separated string
   active        Boolean  @default(true)
   rating        Float    @default(5.0)
   jobsCompleted Int      @default(0)
@@ -129,9 +99,8 @@ model Booking {
   address        String?
   slotStart      DateTime?
   slotEnd        DateTime?
-  status         BookingStatus @default(DRAFT)
+  status         String        @default("DRAFT")
 
-  // Traceability back to the booking this one was rebooked from (FR9)
   sourceBookingId String?
   sourceBooking   Booking?  @relation("Rebookings", fields: [sourceBookingId], references: [id])
   rebookings      Booking[] @relation("Rebookings")
@@ -157,7 +126,7 @@ model CalendarSlot {
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   startTime      DateTime
   endTime        DateTime
-  slotType       SlotType     @default(AVAILABLE)
+  slotType       String       @default("AVAILABLE")
 
   bookingId String?  @unique
   booking   Booking? @relation(fields: [bookingId], references: [id])
@@ -177,8 +146,8 @@ model RebookingEvent {
   newBookingId String?
   newBooking   Booking? @relation("NewBookingEvents", fields: [newBookingId], references: [id])
 
-  outcome   RebookingOutcome
-  createdAt DateTime         @default(now())
+  outcome   String
+  createdAt DateTime @default(now())
 
   @@index([sourceBookingId])
 }
@@ -217,12 +186,12 @@ model Payment {
   userId        String?
   user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount        Float
-  status        String
+  status        String   @default("PENDING") // PENDING | SUCCESS | FAILED | CANCELLED
   paymentMethod String?
   transactionId String?  @unique
-  orderId       String   @unique
-  paymentId     String?
-  signature     String?
+  orderId       String   @unique // Razorpay order ID
+  paymentId     String?  // Razorpay payment ID (after success)
+  signature     String?  // Razorpay signature (after success)
   errorMessage  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -235,7 +204,7 @@ model Payment {
 model PasswordReset {
   id        String   @id @default(cuid())
   email     String
-  token     String   @unique
+  token     String   @unique // Hashed SHA-256 token
   expiresAt DateTime
   createdAt DateTime @default(now())
 

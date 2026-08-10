@@ -11,8 +11,8 @@ export async function globalSearch(query: string, userId?: string) {
     prisma.service.findMany({
       where: {
         OR: [
-          { name: { contains: term, mode: "insensitive" } },
-          { category: { contains: term, mode: "insensitive" } },
+          { name: { contains: term } },
+          { category: { contains: term } },
         ],
       },
       take: PAGINATION.SEARCH_RESULT_LIMIT,
@@ -20,8 +20,8 @@ export async function globalSearch(query: string, userId?: string) {
     prisma.professional.findMany({
       where: {
         OR: [
-          { user: { name: { contains: term, mode: "insensitive" } } },
-          { skills: { has: term } },
+          { user: { name: { contains: term } } },
+          { skills: { contains: term } },
         ],
       },
       include: { user: { select: { name: true } } },
@@ -31,7 +31,7 @@ export async function globalSearch(query: string, userId?: string) {
       ? prisma.booking.findMany({
           where: {
             userId,
-            service: { name: { contains: term, mode: "insensitive" } },
+            service: { name: { contains: term } },
           },
           include: { service: true, professional: { include: { user: { select: { name: true } } } } },
           take: PAGINATION.SEARCH_RESULT_LIMIT,

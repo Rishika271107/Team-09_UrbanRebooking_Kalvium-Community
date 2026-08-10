@@ -1,218 +1,283 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
-import { QuickRebookCard, QuickRebookProps } from "@/components/dashboard/QuickRebookCard";
-import { Search, Filter, CalendarX2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { RotateCw, Loader2, Star, Clock, Tag } from "lucide-react";
 
-interface BookingItem {
+interface Booking {
   id: string;
-  status: string;
+  service: { name: string; category: string };
   slotStart: string | null;
-  price: number;
-  service: { id: string; name: string; category: string; price: number };
-  professional: { id: string; active: boolean; user: { name: string } } | null;
+  status: string;
+  professional: { user: { name: string } } | null;
+}
+
+interface PaginatedResponse {
+  bookings: Booking[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// ── Demo bookings shown for demonstration purposes ──────────────────────────
+const DEMO_BOOKINGS = [
+  {
+    id: "demo-1",
+    service: { name: "Full Home Deep Cleaning", category: "Cleaning" },
+    slotStart: "2025-03-14T10:00:00Z",
+    professional: "Priya Sharma",
+    rating: 4.9,
+    price: "₹1,299",
+    badge: "Most Booked",
+    badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
+    avatar: "PS",
+    avatarBg: "bg-teal-600",
+  },
+  {
+    id: "demo-2",
+    service: { name: "AC Service & Deep Clean", category: "Appliance Repair" },
+    slotStart: "2025-04-02T09:00:00Z",
+    professional: "Rahul Verma",
+    rating: 4.7,
+    price: "₹799",
+    badge: "Top Rated",
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
+    avatar: "RV",
+    avatarBg: "bg-blue-600",
+  },
+  {
+    id: "demo-3",
+    service: { name: "Bathroom & Kitchen Sanitisation", category: "Cleaning" },
+    slotStart: "2025-04-20T08:30:00Z",
+    professional: "Sunita Patel",
+    rating: 4.8,
+    price: "₹649",
+    badge: "",
+    badgeColor: "",
+    avatar: "SP",
+    avatarBg: "bg-purple-600",
+  },
+  {
+    id: "demo-4",
+    service: { name: "Haircut & Styling at Home", category: "Beauty" },
+    slotStart: "2025-05-05T11:00:00Z",
+    professional: "Anjali Mehta",
+    rating: 5.0,
+    price: "₹549",
+    badge: "5★ Professional",
+    badgeColor: "bg-pink-50 text-pink-700 border-pink-200",
+    avatar: "AM",
+    avatarBg: "bg-pink-600",
+  },
+  {
+    id: "demo-5",
+    service: { name: "Electrician – Wiring & Fixtures", category: "Electrical" },
+    slotStart: "2025-05-18T14:00:00Z",
+    professional: "Vikram Singh",
+    rating: 4.6,
+    price: "₹449",
+    badge: "",
+    badgeColor: "",
+    avatar: "VS",
+    avatarBg: "bg-orange-600",
+  },
+  {
+    id: "demo-6",
+    service: { name: "Pest Control – Full Home", category: "Pest Control" },
+    slotStart: "2025-06-01T08:00:00Z",
+    professional: "Deepak Kumar",
+    rating: 4.8,
+    price: "₹999",
+    badge: "Trending",
+    badgeColor: "bg-green-50 text-green-700 border-green-200",
+    avatar: "DK",
+    avatarBg: "bg-green-700",
+  },
+  {
+    id: "demo-7",
+    service: { name: "Sofa & Carpet Steam Cleaning", category: "Cleaning" },
+    slotStart: "2025-06-14T10:30:00Z",
+    professional: "Meena Joshi",
+    rating: 4.7,
+    price: "₹849",
+    badge: "",
+    badgeColor: "",
+    avatar: "MJ",
+    avatarBg: "bg-indigo-600",
+  },
+  {
+    id: "demo-8",
+    service: { name: "Plumbing – Pipe Repair & Fitting", category: "Plumbing" },
+    slotStart: "2025-07-03T09:00:00Z",
+    professional: "Arjun Nair",
+    rating: 4.5,
+    price: "₹399",
+    badge: "",
+    badgeColor: "",
+    avatar: "AN",
+    avatarBg: "bg-cyan-700",
+  },
+  {
+    id: "demo-9",
+    service: { name: "Facial & Skin Care at Home", category: "Beauty" },
+    slotStart: "2025-07-19T15:00:00Z",
+    professional: "Kavita Rao",
+    rating: 4.9,
+    price: "₹699",
+    badge: "Customer Favourite",
+    badgeColor: "bg-rose-50 text-rose-700 border-rose-200",
+    avatar: "KR",
+    avatarBg: "bg-rose-600",
+  },
+  {
+    id: "demo-10",
+    service: { name: "Water Purifier Installation", category: "Appliance" },
+    slotStart: "2025-08-01T11:00:00Z",
+    professional: "Suresh Gupta",
+    rating: 4.6,
+    price: "₹349",
+    badge: "",
+    badgeColor: "",
+    avatar: "SG",
+    avatarBg: "bg-slate-600",
+  },
+];
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default function RebookListClient() {
-  const [bookings, setBookings] = useState<BookingItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Filters and Sort State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [serviceTypeFilter, setServiceTypeFilter] = useState("ALL");
-  const [sortBy, setSortBy] = useState("NEWEST");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch("/api/bookings/history");
-        const data = await res.json();
-        if (res.ok && data.bookings) {
-          // Only show COMPLETED bookings
-          setBookings(data.bookings.filter((b: BookingItem) => b.status === "COMPLETED"));
-        }
-      } catch (err) {
-        console.error("Failed to load completed bookings", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchBookings();
+  const fetchBookings = useCallback(async (p: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/bookings/history?page=${p}`);
+      const data: PaginatedResponse = await res.json();
+      if (!res.ok) throw new Error("Failed to load bookings");
+      const eligible = data.bookings.filter((b) => b.status === "COMPLETED");
+      setBookings(eligible);
+      setTotal(data.total);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Compute unique service categories for filter dropdown
-  const categories = useMemo(() => {
-    const cats = new Set(bookings.map(b => b.service.category));
-    return ["ALL", ...Array.from(cats)];
-  }, [bookings]);
+  useEffect(() => { fetchBookings(page); }, [fetchBookings, page]);
 
-  // Filter and Sort logic
-  const filteredAndSortedBookings = useMemo(() => {
-    let result = [...bookings];
-
-    // 1. Search
-    if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(b => 
-        b.service.name.toLowerCase().includes(q) || 
-        (b.professional?.user.name.toLowerCase() || "").includes(q)
-      );
-    }
-
-    // 2. Category Filter
-    if (serviceTypeFilter !== "ALL") {
-      result = result.filter(b => b.service.category === serviceTypeFilter);
-    }
-
-    // 3. Sort
-    result.sort((a, b) => {
-      const dateA = a.slotStart ? new Date(a.slotStart).getTime() : 0;
-      const dateB = b.slotStart ? new Date(b.slotStart).getTime() : 0;
-      const priceA = a.service.price || a.price || 0;
-      const priceB = b.service.price || b.price || 0;
-
-      switch (sortBy) {
-        case "NEWEST":
-          return dateB - dateA;
-        case "OLDEST":
-          return dateA - dateB;
-        case "PRICE_HIGH":
-          return priceB - priceA;
-        case "PRICE_LOW":
-          return priceA - priceB;
-        default:
-          return 0;
-      }
-    });
-
-    return result;
-  }, [bookings, searchQuery, serviceTypeFilter, sortBy]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedBookings.length / itemsPerPage);
-  const paginatedBookings = filteredAndSortedBookings.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Map to QuickRebookProps
-  const mappedItems: QuickRebookProps[] = paginatedBookings.map(b => {
-    const d = b.slotStart ? new Date(b.slotStart) : null;
-    return {
-      id: b.id,
-      serviceName: b.service.name,
-      professionalName: b.professional?.user.name || "Unassigned Pro",
-      rating: 4.8, // Mocked rating
-      jobsCompleted: "1240+", // Mocked
-      lastBooked: d ? d.toLocaleDateString("en-GB") : "Unknown",
-      price: b.service.price || b.price || 0,
-      isServiceAvailable: true // Could be based on a flag if it existed
-    };
-  });
-
-  return (
-    <div className="flex flex-col gap-8">
-      {/* Search and Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by service or professional..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <select
-              value={serviceTypeFilter}
-              onChange={(e) => { setServiceTypeFilter(e.target.value); setCurrentPage(1); }}
-              className="rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-sm outline-none focus:border-teal-500 bg-white"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat === "ALL" ? "All Services" : cat}</option>
-              ))}
-            </select>
-          </div>
-
-          <select
-            value={sortBy}
-            onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-            className="rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-sm outline-none focus:border-teal-500 bg-white"
-          >
-            <option value="NEWEST">Newest First</option>
-            <option value="OLDEST">Oldest First</option>
-            <option value="PRICE_HIGH">Price: High to Low</option>
-            <option value="PRICE_LOW">Price: Low to High</option>
-          </select>
-        </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={24} className="animate-spin text-teal-600" />
       </div>
+    );
+  }
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-64 rounded-xl bg-slate-100 animate-pulse border border-slate-200"></div>
+  if (error) {
+    return <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-600">{error}</div>;
+  }
+
+  // ── Render: real completed bookings at the top, then demo cards ────────────
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Real bookings (if any) */}
+      {bookings.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Your Past Bookings</h2>
+          {bookings.map((b) => (
+            <div key={b.id} className="flex items-center justify-between rounded-xl border bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-slate-900">{b.service.name}</span>
+                <span className="text-sm text-slate-500">
+                  {b.professional?.user.name ?? "—"}
+                  {b.slotStart ? ` • ${new Date(b.slotStart).toLocaleDateString("en-IN")}` : ""}
+                </span>
+              </div>
+              <Link
+                href={`/rebook/${b.id}`}
+                className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition-colors"
+              >
+                <RotateCw size={16} /> Rebook
+              </Link>
+            </div>
           ))}
         </div>
-      ) : mappedItems.length > 0 ? (
-        <>
-          {/* Grid */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mappedItems.map((item) => (
-              <QuickRebookCard key={item.id} item={item} />
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm font-medium text-slate-600 px-4">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        /* Empty State */
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 px-4 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 text-slate-400 mb-6">
-            <CalendarX2 size={40} />
-          </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">No Previous Bookings</h3>
-          <p className="text-slate-500 max-w-md mx-auto mb-8">
-            You haven't completed any services yet. Once you do, you'll be able to rebook them instantly from here with all your details prefilled.
-          </p>
-          <Link
-            href="/dashboard"
-            className="rounded-lg bg-[#047260] px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-teal-700"
-          >
-            Browse Services
-          </Link>
-        </div>
       )}
+
+      {/* Demo / popular services */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
+          {bookings.length > 0 ? "Popular Services You Might Like" : "Past Services — Quick Rebook"}
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
+          {DEMO_BOOKINGS.map((d) => (
+            <div
+              key={d.id}
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-200"
+            >
+              {/* Badge */}
+              {d.badge && (
+                <span className={`absolute top-4 right-4 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${d.badgeColor}`}>
+                  {d.badge}
+                </span>
+              )}
+
+              {/* Top row: avatar + name */}
+              <div className="flex items-start gap-3 mb-4">
+                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold ${d.avatarBg}`}>
+                  {d.avatar}
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900 leading-snug pr-16">{d.service.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{d.service.category}</p>
+                </div>
+              </div>
+
+              {/* Details row */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mb-4">
+                <span className="flex items-center gap-1">
+                  <span className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                    {d.professional.split(" ").map((n) => n[0]).join("")}
+                  </span>
+                  {d.professional}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Star size={12} className="text-amber-400 fill-amber-400" />
+                  {d.rating.toFixed(1)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock size={12} />
+                  {formatDate(d.slotStart!)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Tag size={12} />
+                  {d.price}
+                </span>
+              </div>
+
+              {/* Rebook button */}
+              <Link
+                href={`/rebook/${d.id}`}
+                className="flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 active:scale-95 transition-all"
+              >
+                <RotateCw size={15} />
+                Rebook Now
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

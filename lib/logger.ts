@@ -1,29 +1,14 @@
 /**
- * Structured logger utility for production-grade logging.
- * Uses structured console output compatible with Vercel Log Drain.
- * NEVER logs passwords or sensitive fields.
+ * Simple server-side logger.
  */
 
-type LogLevel = "info" | "warn" | "error";
+type LogLevel = "info" | "warn" | "error" | "debug";
 
-interface LogPayload {
-  event: string;
-  [key: string]: unknown;
-}
-
-function log(level: LogLevel, payload: LogPayload) {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    level,
-    ...payload,
-  };
-  if (level === "error") {
-    console.error(JSON.stringify(entry));
-  } else if (level === "warn") {
-    console.warn(JSON.stringify(entry));
-  } else {
-    console.log(JSON.stringify(entry));
-  }
+function log(level: LogLevel, meta: Record<string, unknown>) {
+  const timestamp = new Date().toISOString();
+  const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
+  const event = typeof meta.event === 'string' ? meta.event : 'log';
+  console[level === "debug" ? "log" : level](`${prefix} ${event}`, meta);
 }
 
 // ── Auth Events ──────────────────────────────────────────────────────────────

@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { deletePaymentMethod } from "@/services/payment.service";
 import { requireSession } from "@/lib/session";
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { session, error } = await requireSession();
   if (error) return error;
 
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     const deleted = await deletePaymentMethod(id, session.user.id);
     
     if (!deleted) {

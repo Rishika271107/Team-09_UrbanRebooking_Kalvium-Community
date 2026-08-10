@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { deleteNotification } from "@/services/notification.service";
 import { requireSession } from "@/lib/session";
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { session, error } = await requireSession();
   if (error) return error;
 
+  const { id } = await params;
+
   try {
-    const { id } = await context.params;
     const deletedNotification = await deleteNotification(id, session.user.id);
     
     if (!deletedNotification) {
