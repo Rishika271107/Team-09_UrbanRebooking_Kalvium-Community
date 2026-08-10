@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { deletePaymentMethod } from "@/services/payment.service";
 import { requireSession } from "@/lib/session";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { session, error } = await requireSession();
   if (error) return error;
 
   try {
-    const deleted = await deletePaymentMethod(params.id, session.user.id);
+    const { id } = await context.params;
+    const deleted = await deletePaymentMethod(id, session.user.id);
     
     if (!deleted) {
       return NextResponse.json({ error: "Payment method not found or access denied." }, { status: 404 });
