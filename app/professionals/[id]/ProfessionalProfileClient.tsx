@@ -76,7 +76,7 @@ export default function ProfessionalProfileClient({ id }: ProfessionalProfileCli
             completedJobs={stats.completedJobs}
           />
           
-          <SkillsList skillsStr={professional.skills.join(", ")} />
+          <SkillsList skillsStr={professional.skills} />
           
           <ReviewList reviews={reviews} />
         </div>
