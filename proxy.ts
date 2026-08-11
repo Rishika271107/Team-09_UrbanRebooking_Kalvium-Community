@@ -8,7 +8,7 @@ const RATE_LIMITED_AUTH_PATHS = [
   "/api/auth/register",
 ];
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // 1. Rate limiting

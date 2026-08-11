@@ -272,7 +272,7 @@ export default function RebookListClient() {
                 className="flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 active:scale-95 transition-all"
               >
                 <RotateCw size={15} />
-                Rebook Now
+                Book Now
               </Link>
             </div>
           ))}
