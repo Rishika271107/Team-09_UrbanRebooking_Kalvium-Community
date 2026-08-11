@@ -21,10 +21,7 @@ import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
 import { PaymentList } from "@/components/payment/PaymentList";
 import { PaymentSkeleton } from "@/components/payment/PaymentSkeleton";
 
-import { AddPaymentModal } from "@/components/payment/AddPaymentModal";
-import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
-import { PaymentList } from "@/components/payment/PaymentList";
-import { PaymentSkeleton } from "@/components/payment/PaymentSkeleton";
+
 
 /* ─── Schemas ──────────────────────────────────────────────────────── */
 const profileSchema = z.object({
@@ -334,6 +331,9 @@ export default function ProfileClient({
       if (res.ok) {
         setPaymentMethods(prev => prev.map(p => ({ ...p, isDefault: p.id === id })));
       }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   /* Notification toggles */

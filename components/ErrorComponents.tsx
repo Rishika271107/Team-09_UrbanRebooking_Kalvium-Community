@@ -81,8 +81,6 @@ export const toast: ToastFunction = Object.assign(
   }
 );
 
->>>>>>> origin/main
-
 /** Drop-in toast container — mount once inside the root layout or DashboardLayout. */
 export function ToastProvider() {
   const [toasts, setToasts] = useState<Toast[]>([]);
