@@ -8,7 +8,7 @@ async function main() {
 
   const customer = await prisma.user.upsert({
     where: { email: "customer@urban.co" },
-    update: {},
+    update: { password },
     create: {
       name: "Asha Kumar",
       email: "customer@urban.co",
@@ -21,7 +21,7 @@ async function main() {
 
   const proUser = await prisma.user.upsert({
     where: { email: "pro@urban.co" },
-    update: {},
+    update: { password },
     create: {
       name: "Ravi Shankar",
       email: "pro@urban.co",
@@ -33,7 +33,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "admin@urban.co" },
-    update: {},
+    update: { password },
     create: {
       name: "Urban Admin",
       email: "admin@urban.co",
