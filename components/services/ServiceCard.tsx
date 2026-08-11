@@ -41,7 +41,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
             ₹{service.price.toFixed(2)}
           </div>
           
-          <Link href={`/rebook/${service.id}`} className="flex items-center justify-center gap-1 px-4 py-2 bg-teal-50 text-teal-700 rounded-lg font-semibold text-sm hover:bg-teal-100 transition-colors">
+          <Link href={`/book/${service.id}`} className="flex items-center justify-center gap-1 px-4 py-2 bg-teal-50 text-teal-700 rounded-lg font-semibold text-sm hover:bg-teal-100 transition-colors">
             Book <ChevronRight size={16} />
           </Link>
         </div>

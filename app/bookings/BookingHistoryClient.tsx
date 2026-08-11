@@ -55,11 +55,17 @@ const STATUS_META: Record<
     bg: "bg-blue-50",
     border: "border-blue-200",
   },
+  DRAFT: {
+    label: "Requested",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+  },
   PENDING: {
-    label: "Upcoming",
-    color: "text-blue-700",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
+    label: "Pending",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    border: "border-amber-200",
   },
   CANCELLED: {
     label: "Cancelled",
@@ -128,9 +134,10 @@ function avatarColor(name: string) {
 }
 
 /* ── Tab definition ──────────────────────────────────────── */
-type TabKey = "ALL" | "COMPLETED" | "UPCOMING" | "CANCELLED" | "REBOOKED";
+type TabKey = "ALL" | "REQUESTS" | "COMPLETED" | "UPCOMING" | "CANCELLED" | "REBOOKED";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "ALL", label: "All" },
+  { key: "REQUESTS", label: "Requests" },
   { key: "COMPLETED", label: "Completed" },
   { key: "UPCOMING", label: "Upcoming" },
   { key: "CANCELLED", label: "Cancelled" },
@@ -373,6 +380,7 @@ export default function BookingHistoryClient() {
   const counts = useMemo(
     () => ({
       ALL: bookings.length,
+      REQUESTS: bookings.filter((b) => b.status === "DRAFT").length,
       COMPLETED: bookings.filter((b) => b.status === "COMPLETED").length,
       UPCOMING: bookings.filter(
         (b) => b.status === "CONFIRMED" || b.status === "PENDING"
@@ -388,7 +396,8 @@ export default function BookingHistoryClient() {
     let list = [...bookings];
     
     // Status tab filter
-    if (activeTab === "COMPLETED") list = list.filter((b) => b.status === "COMPLETED");
+    if (activeTab === "REQUESTS") list = list.filter((b) => b.status === "DRAFT");
+    else if (activeTab === "COMPLETED") list = list.filter((b) => b.status === "COMPLETED");
     else if (activeTab === "UPCOMING") list = list.filter((b) => b.status === "CONFIRMED" || b.status === "PENDING");
     else if (activeTab === "CANCELLED") list = list.filter((b) => b.status === "CANCELLED");
     else if (activeTab === "REBOOKED") list = list.filter((b) => b.status === "REBOOKED");
