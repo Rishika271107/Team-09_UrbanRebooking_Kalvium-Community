@@ -27,10 +27,7 @@ export async function GET(req: NextRequest) {
       .slice(0, 4)
       .map(entry => entry[0]);
 
-    let favoriteProfessionals: Awaited<ReturnType<typeof prisma.professional.findMany<{
-      where: { id: { in: string[] } };
-      include: { user: { select: { name: boolean } }; _count: { select: { bookings: boolean } } };
-    }>>> = [];
+    let favoriteProfessionals: any[] = [];
     if (topProIds.length > 0) {
       favoriteProfessionals = await prisma.professional.findMany({
         where: { id: { in: topProIds } },
@@ -51,7 +48,7 @@ export async function GET(req: NextRequest) {
       .slice(0, 4);
 
     let trendingServiceIds = topBookingCounts.map(bc => bc.serviceId).filter(Boolean) as string[];
-    let trendingServices = [];
+    let trendingServices: any[] = [];
     if (trendingServiceIds.length > 0) {
       trendingServices = await prisma.service.findMany({
         where: { id: { in: trendingServiceIds } }

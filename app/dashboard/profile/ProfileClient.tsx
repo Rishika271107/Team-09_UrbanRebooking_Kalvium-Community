@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,6 +16,11 @@ import {
   setDefaultAddressAction,
 } from "@/app/actions/address.actions";
 import type { AddressStub } from "@/services/address.service";
+import { AddPaymentModal } from "@/components/payment/AddPaymentModal";
+import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
+import { PaymentList } from "@/components/payment/PaymentList";
+import { PaymentSkeleton } from "@/components/payment/PaymentSkeleton";
+
 import { AddPaymentModal } from "@/components/payment/AddPaymentModal";
 import { PaymentEmptyState } from "@/components/payment/PaymentEmptyState";
 import { PaymentList } from "@/components/payment/PaymentList";
@@ -260,22 +265,75 @@ export default function ProfileClient({
     });
   };
 
-  /* Payments */
+  /* Payment Methods */
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
-  const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
 
-  const handleAddPayment = async (method: { cardType: string; lastFour: string; provider: string }) => {
-    setPaymentMethods((prev) => [...prev, { ...method, id: Date.now().toString(), isDefault: prev.length === 0 }]);
-    setShowAddPaymentModal(false);
+  useEffect(() => {
+    async function fetchPayments() {
+      try {
+        const res = await fetch("/api/payment-methods");
+        if (res.ok) {
+          const data = await res.json();
+          setPaymentMethods(data.paymentMethods || []);
+        }
+      } catch (err) {
+        console.error("Failed to load payment methods", err);
+      } finally {
+        setIsPaymentsLoading(false);
+      }
+    }
+    fetchPayments();
+  }, []);
+
+  const handleAddPayment = async (data: { cardType: string; lastFour: string; provider: string; isDefault?: boolean }) => {
+    try {
+      const res = await fetch("/api/payment-methods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success) {
+          setPaymentMethods(prev => {
+            const updated = data.isDefault 
+              ? prev.map(p => ({ ...p, isDefault: false })) 
+              : prev;
+            return [result.paymentMethod, ...updated];
+          });
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
-  const handleDeletePayment = (id: string) => {
-    setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+
+  const handleDeletePayment = async (id: string) => {
+    try {
+      const res = await fetch(`/api/payment-methods/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setPaymentMethods(prev => {
+          const filtered = prev.filter(p => p.id !== id);
+          const deleted = prev.find(p => p.id === id);
+          if (deleted?.isDefault && filtered.length > 0) {
+            filtered[0].isDefault = true;
+          }
+          return filtered;
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
-  const handleSetDefaultPayment = (id: string) => {
-    setPaymentMethods((prev) =>
-      prev.map((m) => ({ ...m, isDefault: m.id === id }))
-    );
+
+  const handleSetDefaultPayment = async (id: string) => {
+    try {
+      const res = await fetch(`/api/payment-methods/${id}/default`, { method: "PATCH" });
+      if (res.ok) {
+        setPaymentMethods(prev => prev.map(p => ({ ...p, isDefault: p.id === id })));
+      }
   };
 
   /* Notification toggles */
