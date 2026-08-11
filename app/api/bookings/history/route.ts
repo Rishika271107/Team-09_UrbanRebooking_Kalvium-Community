@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const take = 10;
+  const take = 1000;
   const skip = (page - 1) * take;
 
   try {
