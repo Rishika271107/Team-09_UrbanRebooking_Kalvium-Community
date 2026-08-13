@@ -7,6 +7,7 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }: any) {
       const isLoggedIn = !!auth?.user;
+      const userRole = auth?.user?.role || "CUSTOMER";
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
       const isOnBookings = nextUrl.pathname.startsWith("/bookings");
       const isOnRebook = nextUrl.pathname.startsWith("/rebook");
@@ -17,10 +18,19 @@ export const authConfig = {
         isOnDashboard || isOnBookings || isOnRebook || isOnAdmin || isOnProfessional;
 
       if (isProtected) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+        if (!isLoggedIn) return false;
+        
+        // RBAC Check
+        if (isOnAdmin && userRole !== "ADMIN" && userRole !== "PROFESSIONAL") {
+          return Response.redirect(new URL("/dashboard", nextUrl));
+        }
+        
+        return true;
       } else if (isLoggedIn) {
         if (nextUrl.pathname === "/login" || nextUrl.pathname === "/signup") {
+          if (userRole === "ADMIN" || userRole === "PROFESSIONAL") {
+            return Response.redirect(new URL("/admin", nextUrl));
+          }
           return Response.redirect(new URL("/dashboard", nextUrl));
         }
       }

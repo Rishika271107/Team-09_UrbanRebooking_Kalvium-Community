@@ -3,20 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { z } from "zod";
 
-async function ensureAdmin() {
+async function ensureAdminOrPro() {
   const { session, error } = await requireSession();
   if (error) return { error };
-  if (session.user.role !== "ADMIN") {
+  if (session.user.role !== "ADMIN" && session.user.role !== "PROFESSIONAL") {
     return {
-      error: NextResponse.json({ error: "Access denied. Admins only." }, { status: 403 }),
+      error: NextResponse.json({ error: "Access denied. Admins and Professionals only." }, { status: 403 }),
     };
   }
   return { session };
 }
 
-// ── GET /api/admin/bookings (List bookings with pagination, status filtering & sorting) ───────────────────────────
 export async function GET(req: NextRequest) {
-  const { error } = await ensureAdmin();
+  const { session, error } = await ensureAdminOrPro();
   if (error) return error;
 
   try {
@@ -34,6 +33,17 @@ export async function GET(req: NextRequest) {
     if (status) {
       where.status = status;
     }
+    
+    // Add professional check if they are a PROFESSIONAL
+    if (session.user.role === "PROFESSIONAL") {
+      const pro = await prisma.professional.findUnique({
+        where: { userId: session.user.id }
+      });
+      if (pro) {
+        where.professionalId = pro.id;
+      }
+    }
+
     if (search) {
       where.user = {
         OR: [
