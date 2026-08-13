@@ -8,12 +8,12 @@ const patchBookingSchema = z.object({
   professionalId: z.string().optional(),
 });
 
-async function ensureAdmin() {
+async function ensureAdminOrPro() {
   const { session, error } = await requireSession();
   if (error) return { error };
-  if (session.user.role !== "ADMIN") {
+  if (session.user.role !== "ADMIN" && session.user.role !== "PROFESSIONAL") {
     return {
-      error: NextResponse.json({ error: "Access denied. Admins only." }, { status: 403 }),
+      error: NextResponse.json({ error: "Access denied. Admins and Professionals only." }, { status: 403 }),
     };
   }
   return { session };
@@ -24,7 +24,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await ensureAdmin();
+  const { session, error } = await ensureAdminOrPro();
   if (error) return error;
 
   const { id } = await params;
@@ -51,6 +51,27 @@ export async function PATCH(
       return NextResponse.json({ error: "Booking not found." }, { status: 404 });
     }
 
+    // Role-based authorization check
+    if (session.user.role === "PROFESSIONAL") {
+      const pro = await prisma.professional.findUnique({
+        where: { userId: session.user.id }
+      });
+      // Allow modifying if assigned, or if the booking is not assigned to anyone yet (taking request)
+      if (!pro || (booking.professionalId && booking.professionalId !== pro.id)) {
+        return NextResponse.json({ error: "Not authorized to modify this booking." }, { status: 403 });
+      }
+      
+      // If professionalId is being updated and it's not the current professional's id, deny
+      if (parsed.data.professionalId && parsed.data.professionalId !== pro.id) {
+        return NextResponse.json({ error: "Cannot assign to another professional." }, { status: 403 });
+      }
+      
+      // Automatically set the professional ID if taking an unassigned request
+      if (!booking.professionalId && parsed.data.status === "CONFIRMED") {
+        parsed.data.professionalId = pro.id;
+      }
+    }
+
     // If professionalId is changing, ensure they exist first
     if (parsed.data.professionalId) {
       const professionalExists = await prisma.professional.findUnique({
@@ -61,14 +82,31 @@ export async function PATCH(
       }
     }
 
-    const updated = await prisma.booking.update({
-      where: { id },
-      data: parsed.data,
-      include: {
-        user: { select: { name: true, email: true } },
-        professional: { include: { user: { select: { name: true } } } },
-        service: true,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedBooking = await tx.booking.update({
+        where: { id },
+        data: parsed.data,
+        include: {
+          user: { select: { name: true, email: true } },
+          professional: { include: { user: { select: { name: true } } } },
+          service: true,
+          calendarSlot: true
+        },
+      });
+
+      if (parsed.data.status === "CONFIRMED" && updatedBooking.calendarSlot) {
+        await tx.calendarSlot.update({
+          where: { id: updatedBooking.calendarSlot.id },
+          data: { slotType: "BOOKED" }
+        });
+      } else if ((parsed.data.status === "CANCELLED" || parsed.data.status === "DISPUTED") && updatedBooking.calendarSlot) {
+        await tx.calendarSlot.update({
+          where: { id: updatedBooking.calendarSlot.id },
+          data: { slotType: "AVAILABLE", bookingId: null }
+        });
+      }
+
+      return updatedBooking;
     });
 
     return NextResponse.json({ booking: updated }, { status: 200 });

@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
             endTime: end,
             slotType: "AVAILABLE",
           },
-          data: { slotType: "BOOKED" },
+          data: { slotType: "PENDING" },
         });
 
         if (slotUpdate.count === 0) {
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
             professionalId,
             slotStart: start,
             slotEnd: end,
-            status: "CONFIRMED",
+            status: "PENDING",
           },
           include: {
             service: true,
