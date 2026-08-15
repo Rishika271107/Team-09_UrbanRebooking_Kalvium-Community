@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2, Search, Filter, Check, X, Calendar as CalendarIcon, Clock, MapPin, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Search, Filter, Check, X, Calendar as CalendarIcon, Clock, MapPin, User, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 
 export default function AdminBookingsClient() {
   const searchParams = useSearchParams();
@@ -15,52 +15,75 @@ export default function AdminBookingsClient() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchBookings = async () => {
-    setIsLoading(true);
+  const fetchBookings = useCallback(async (silent = false, signal?: AbortSignal) => {
+    if (!silent) setIsLoading(true);
     try {
       const url = new URL("/api/admin/bookings", window.location.origin);
       url.searchParams.set("page", page.toString());
       if (statusFilter) url.searchParams.set("status", statusFilter);
       if (searchQuery) url.searchParams.set("search", searchQuery);
 
-      const res = await fetch(url.toString());
-      if (res.ok) {
-        const data = await res.json();
-        setBookings(data.bookings);
-        setTotalPages(data.pagination?.totalPages || 1);
+      const res = await fetch(url.toString(), { signal });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || `Server error: ${res.status}`);
       }
-    } catch (error) {
+      const data = await res.json();
+      setBookings(data.bookings ?? []);
+      setTotalPages(data.pagination?.totalPages || 1);
+    } catch (error: any) {
+      if (error?.name === "AbortError") return; // cancelled – ignore
       console.error("Failed to fetch bookings:", error);
+      if (!silent) showToast("error", error?.message || "Failed to load bookings. Please try again.");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchBookings();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter, searchQuery]);
+
+  // Initial fetch + auto-refresh every 30 seconds
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchBookings(false, controller.signal);
+    intervalRef.current = setInterval(() => fetchBookings(true), 30_000);
+    return () => {
+      controller.abort();
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchBookings]);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const showToast = (type: "success" | "error", message: string) => setToast({ type, message });
 
   const handleAction = async (id: string, newStatus: string) => {
     setActionLoading(id);
     try {
       const res = await fetch(`/api/admin/bookings/${id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
       
       if (res.ok) {
-        fetchBookings();
+        const label = newStatus === "CONFIRMED" ? "accepted" : newStatus === "CANCELLED" ? "rejected" : "updated";
+        showToast("success", `Booking ${label} successfully. Customer has been notified.`);
+        fetchBookings(true);
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to update booking status");
+        showToast("error", data.error || "Failed to update booking status");
       }
     } catch (error) {
       console.error("Error updating booking:", error);
-      alert("An error occurred");
+      showToast("error", "An error occurred. Please try again.");
     } finally {
       setActionLoading(null);
     }
@@ -68,7 +91,8 @@ export default function AdminBookingsClient() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "PENDING": return <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Pending</span>;
+      case "DRAFT":
+      case "PENDING": return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800"><span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />New Request</span>;
       case "CONFIRMED": return <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">Confirmed</span>;
       case "COMPLETED": return <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">Completed</span>;
       case "CANCELLED": return <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">Cancelled</span>;
@@ -77,7 +101,25 @@ export default function AdminBookingsClient() {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div className="space-y-4">
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`flex items-center gap-3 rounded-xl px-5 py-3 text-sm font-medium shadow-lg border ${
+            toast.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
+          {toast.type === "success" ? <Check className="h-4 w-4 shrink-0" /> : <X className="h-4 w-4 shrink-0" />}
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-auto text-current opacity-60 hover:opacity-100">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {/* Filters */}
       <div className="border-b border-slate-200 p-4 sm:p-6 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative max-w-sm w-full">
@@ -99,6 +141,7 @@ export default function AdminBookingsClient() {
           >
             <option value="">All Statuses</option>
             <option value="PENDING">Pending Requests</option>
+            <option value="DRAFT">New Requests (Draft)</option>
             <option value="CONFIRMED">Confirmed</option>
             <option value="COMPLETED">Completed</option>
             <option value="CANCELLED">Cancelled</option>
@@ -168,12 +211,12 @@ export default function AdminBookingsClient() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {booking.status === "PENDING" && (
+                      {(booking.status === "PENDING" || booking.status === "DRAFT") && (
                         <>
                           <button
                             onClick={() => handleAction(booking.id, "CONFIRMED")}
                             disabled={actionLoading === booking.id}
-                            className="inline-flex items-center gap-1 rounded-lg bg-[#047260] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#035c4e] disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-lg bg-[#047260] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#035c4e] disabled:opacity-50 transition-colors"
                           >
                             {actionLoading === booking.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                             Accept
@@ -181,10 +224,10 @@ export default function AdminBookingsClient() {
                           <button
                             onClick={() => handleAction(booking.id, "CANCELLED")}
                             disabled={actionLoading === booking.id}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-50 transition-colors"
                           >
                             <X className="h-3 w-3" />
-                            Reject
+                            Decline
                           </button>
                         </>
                       )}
@@ -193,10 +236,10 @@ export default function AdminBookingsClient() {
                         <button
                           onClick={() => handleAction(booking.id, "COMPLETED")}
                           disabled={actionLoading === booking.id}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 disabled:opacity-50 transition-colors"
                         >
                           {actionLoading === booking.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                          Complete
+                          Mark Complete
                         </button>
                       )}
 
@@ -237,6 +280,7 @@ export default function AdminBookingsClient() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

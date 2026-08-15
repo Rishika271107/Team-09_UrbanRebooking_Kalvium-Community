@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { createNotification } from "@/services/notification.service";
 import { z } from "zod";
 
 const patchBookingSchema = z.object({
@@ -46,7 +47,14 @@ export async function PATCH(
       );
     }
 
-    const booking = await prisma.booking.findUnique({ where: { id } });
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        service: true,
+        user: { select: { id: true, name: true } },
+        professional: { include: { user: { select: { id: true, name: true } } } },
+      },
+    });
     if (!booking) {
       return NextResponse.json({ error: "Booking not found." }, { status: 404 });
     }
@@ -80,6 +88,12 @@ export async function PATCH(
       if (!professionalExists) {
         return NextResponse.json({ error: "Selected professional not found." }, { status: 400 });
       }
+    } else if (session.user.role === "ADMIN" && parsed.data.status === "CONFIRMED" && !booking.professionalId) {
+      // Auto-assign the first professional if Admin confirms without selecting one
+      const firstPro = await prisma.professional.findFirst();
+      if (firstPro) {
+        parsed.data.professionalId = firstPro.id;
+      }
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -87,18 +101,31 @@ export async function PATCH(
         where: { id },
         data: parsed.data,
         include: {
-          user: { select: { name: true, email: true } },
-          professional: { include: { user: { select: { name: true } } } },
+          user: { select: { id: true, name: true, email: true } },
+          professional: { include: { user: { select: { id: true, name: true } } } },
           service: true,
           calendarSlot: true
         },
       });
 
-      if (parsed.data.status === "CONFIRMED" && updatedBooking.calendarSlot) {
-        await tx.calendarSlot.update({
-          where: { id: updatedBooking.calendarSlot.id },
-          data: { slotType: "BOOKED" }
-        });
+      if (parsed.data.status === "CONFIRMED") {
+        if (updatedBooking.calendarSlot) {
+          await tx.calendarSlot.update({
+            where: { id: updatedBooking.calendarSlot.id },
+            data: { slotType: "BOOKED", professionalId: updatedBooking.professionalId! }
+          });
+        } else if (updatedBooking.professionalId && updatedBooking.slotStart && updatedBooking.slotEnd) {
+          // Create a new calendar slot for this booking
+          await tx.calendarSlot.create({
+            data: {
+              professionalId: updatedBooking.professionalId,
+              startTime: updatedBooking.slotStart,
+              endTime: updatedBooking.slotEnd,
+              slotType: "BOOKED",
+              bookingId: updatedBooking.id
+            }
+          });
+        }
       } else if ((parsed.data.status === "CANCELLED" || parsed.data.status === "DISPUTED") && updatedBooking.calendarSlot) {
         await tx.calendarSlot.update({
           where: { id: updatedBooking.calendarSlot.id },
@@ -108,6 +135,41 @@ export async function PATCH(
 
       return updatedBooking;
     });
+
+    // ── Notify the customer based on what the admin/pro just did ──────────
+    const serviceName = updated.service.name;
+    const slotTime = updated.slotStart
+      ? new Date(updated.slotStart).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
+      : null;
+    const proName = updated.professional?.user?.name ?? "your professional";
+
+    if (parsed.data.status === "CONFIRMED") {
+      await createNotification(
+        updated.user.id,
+        "✅ Booking Accepted!",
+        slotTime
+          ? `${proName} accepted your ${serviceName} booking. Scheduled for ${slotTime}.`
+          : `${proName} accepted your ${serviceName} booking request.`,
+        "BOOKING_CONFIRMED",
+        "check-circle"
+      );
+    } else if (parsed.data.status === "CANCELLED") {
+      await createNotification(
+        updated.user.id,
+        "❌ Booking Declined",
+        `Your ${serviceName} booking request was declined. You can rebook at any time.`,
+        "BOOKING_CANCELLED",
+        "x-circle"
+      );
+    } else if (parsed.data.status === "COMPLETED") {
+      await createNotification(
+        updated.user.id,
+        "🎉 Service Completed!",
+        `Your ${serviceName} service is complete! How was it? Please leave a review.`,
+        "BOOKING_COMPLETED",
+        "star"
+      );
+    }
 
     return NextResponse.json({ booking: updated }, { status: 200 });
 

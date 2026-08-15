@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { createNotification } from "@/services/notification.service";
 import { z } from "zod";
+
 
 const newBookingSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required."),
@@ -82,7 +84,33 @@ export async function POST(req: NextRequest) {
       return newBooking;
     });
 
+    // ── Notify all ADMIN users about the new booking request ──────────────
+    try {
+      const adminUsers = await prisma.user.findMany({
+        where: { role: "ADMIN" },
+        select: { id: true },
+      });
+      const userName = session.user.name || session.user.email || "A customer";
+      const slotDisplay = start.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+      await Promise.all(
+        adminUsers.map((admin) =>
+          createNotification(
+            admin.id,
+            "🔔 New Booking Request",
+            `${userName} requested "${service.name}" for ${slotDisplay}. Review and accept or decline.`,
+            "BOOKING_REQUEST",
+            "calendar"
+          )
+        )
+      );
+    } catch (notifErr) {
+      // Don't fail the booking if notification fails
+      console.error("Failed to notify admins:", notifErr);
+    }
+
     return NextResponse.json({ booking }, { status: 201 });
+
   } catch (err) {
     console.error("Create booking error:", err);
     return NextResponse.json(
@@ -91,3 +119,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

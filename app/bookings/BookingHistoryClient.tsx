@@ -18,7 +18,9 @@ import {
   Filter,
   ArrowUpDown,
   HelpCircle,
-  Loader2
+  Loader2,
+  Bell,
+  Check
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "@/components/ErrorComponents";
@@ -324,6 +326,7 @@ export default function BookingHistoryClient() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const [sortOption, setSortOption] = useState("LATEST"); 
   const [dateFilter, setDateFilter] = useState("ALL_TIME");
@@ -364,6 +367,37 @@ export default function BookingHistoryClient() {
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
+
+  /* Fetch user notifications */
+  const fetchNotifications = () => {
+    fetch("/api/notifications")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.notifications) setNotifications(d.notifications);
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const intervalId = setInterval(fetchNotifications, 30_000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const handleDismissNotification = async (id: string) => {
+    // Optimistic UI update
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    } catch (error) {
+      console.error("Failed to dismiss notification:", error);
+    }
+  };
 
   /* Optimistic cancel update */
   const handleCancelSuccess = (id: string) => {
@@ -469,6 +503,31 @@ export default function BookingHistoryClient() {
 
       <div className="flex flex-col gap-6">
         
+        {/* ── Notification Banners ── */}
+        {notifications.filter((n) => !n.readStatus && (n.type === "BOOKING_CONFIRMED" || n.type === "BOOKING_CANCELLED" || n.type === "BOOKING_COMPLETED")).map((notif) => (
+          <div
+            key={notif.id}
+            className={`flex items-center gap-3 rounded-xl px-5 py-3 text-sm font-medium shadow-sm border animate-in slide-in-from-top-2 ${
+              notif.type === "BOOKING_CONFIRMED" || notif.type === "BOOKING_COMPLETED"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`}
+          >
+            <Bell className="h-4 w-4 shrink-0" />
+            <div className="flex-1">
+              <span className="font-bold mr-1">{notif.title}:</span>
+              {notif.message}
+            </div>
+            <button 
+              onClick={() => handleDismissNotification(notif.id)} 
+              className="ml-auto text-current opacity-60 hover:opacity-100 transition-opacity"
+              aria-label="Dismiss notification"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+
         {/* ── Filters & Search Bar ── */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col gap-3 sm:gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

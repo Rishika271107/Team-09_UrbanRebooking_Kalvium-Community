@@ -1,7 +1,5 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { getUserNotifications } from "@/services/notification.service";
 import AdminAnalyticsClient from "./AdminAnalyticsClient";
 
 export const metadata = {
@@ -20,20 +18,15 @@ export default async function AdminAnalyticsPage() {
     redirect("/dashboard");
   }
 
-  const notifications = await getUserNotifications(session.user.id);
-  const unreadCount = notifications.filter((n) => !n.readStatus).length;
-
   return (
-    <DashboardLayout notificationCount={unreadCount}>
-      <div className="flex flex-col gap-6 lg:gap-8 pb-10">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Platform-wide rebooking and booking statistics.
-          </p>
-        </div>
-        <AdminAnalyticsClient />
+    <div className="flex flex-col gap-6 lg:gap-8 pb-10">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
+        <p className="text-slate-500 text-sm mt-1">
+          Platform-wide rebooking and booking statistics.
+        </p>
       </div>
-    </DashboardLayout>
+      <AdminAnalyticsClient />
+    </div>
   );
 }

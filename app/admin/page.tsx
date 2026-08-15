@@ -10,6 +10,7 @@ import {
   IndianRupee,
   Briefcase
 } from "lucide-react";
+import AdminDashboardChart from "./AdminDashboardChart";
 
 export const metadata = {
   title: "Admin Dashboard | Urban Company",
@@ -41,7 +42,7 @@ export default async function AdminDashboardPage() {
     recentBookings,
     earningsData
   ] = await Promise.all([
-    prisma.booking.count({ where: { ...whereClause, status: "PENDING" } }),
+    prisma.booking.count({ where: { ...whereClause, status: { in: ["PENDING", "DRAFT"] } } }),
     prisma.booking.count({ where: { ...whereClause, status: "CONFIRMED" } }),
     prisma.booking.count({ where: { ...whereClause, status: "COMPLETED" } }),
     prisma.booking.count({ where: { ...whereClause, status: "CANCELLED" } }),
@@ -63,6 +64,23 @@ export default async function AdminDashboardPage() {
   ]);
 
   const totalEarnings = earningsData.reduce((sum, b) => sum + b.service.price, 0);
+
+  // Generate chart data for the last 7 days
+  const chartData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+    
+    // Find completed bookings for this day
+    const dayEarnings = earningsData
+      .filter((b) => {
+        const bd = new Date(b.slotStart || b.createdAt);
+        return bd.getDate() === d.getDate() && bd.getMonth() === d.getMonth() && bd.getFullYear() === d.getFullYear();
+      })
+      .reduce((sum, b) => sum + b.service.price, 0);
+
+    return { name: dayName, earnings: dayEarnings };
+  });
 
   const stats = [
     { title: "Pending Requests", value: pendingCount, icon: Clock, color: "text-amber-600", bg: "bg-amber-100", link: "/admin/bookings" },
@@ -153,8 +171,19 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* Chart Section */}
+        <div className="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden p-6 mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-slate-900">Earnings (Last 7 Days)</h2>
+            <Link href="/admin/earnings" className="text-sm font-medium text-[#047260] hover:underline">
+              View all
+            </Link>
+          </div>
+          <AdminDashboardChart data={chartData} />
+        </div>
+
         {/* Quick Actions / Alerts */}
-        <div className="space-y-6">
+        <div className="space-y-6 mt-6">
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
             <div className="space-y-3">
