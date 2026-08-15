@@ -6,11 +6,6 @@ const nextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   // Ensure external packages (like prisma, bcryptjs) aren't bundled into the client
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   }
