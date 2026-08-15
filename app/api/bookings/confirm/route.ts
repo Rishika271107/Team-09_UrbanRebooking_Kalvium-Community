@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
           },
           include: {
             service: true,
-            professional: { include: { user: { select: { name: true } } } },
+            professional: { include: { user: { select: { id: true, name: true } } } },
           },
         });
 
@@ -151,11 +151,26 @@ export async function POST(req: NextRequest) {
       { timeout: 10_000, maxWait: 5_000 }
     );
 
+    // Notify the customer their request is submitted and pending
     await createNotification(
       session.user.id,
-      "Booking confirmed",
-      `Your ${confirmedBooking.service.name} booking is confirmed for ${start.toLocaleString()}.`
+      "📋 Booking Request Submitted",
+      `Your ${confirmedBooking.service.name} booking request has been submitted and is awaiting confirmation.`,
+      "BOOKING_PENDING",
+      "clock"
     );
+
+    // Notify the professional that a new booking request arrived
+    if (confirmedBooking.professional?.user?.id) {
+      await createNotification(
+        confirmedBooking.professional.user.id,
+        "🔔 New Booking Request",
+        `${session.user.name || "A customer"} has requested ${confirmedBooking.service.name}` +
+          (start ? ` for ${new Date(start).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}.` : "."),
+        "NEW_BOOKING_REQUEST",
+        "bell"
+      );
+    }
 
     return NextResponse.json({ booking: confirmedBooking }, { status: 200 });
   } catch (err) {

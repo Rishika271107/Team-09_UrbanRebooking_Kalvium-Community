@@ -21,3 +21,65 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch services" }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const data = await req.json();
+    const { name, price, durationMinutes, category } = data;
+
+    if (!name || !price || !durationMinutes || !category) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const service = await prisma.service.create({
+      data: {
+        name,
+        price: parseFloat(price),
+        durationMinutes: parseInt(durationMinutes, 10),
+        category,
+      }
+    });
+
+    return NextResponse.json({ service }, { status: 201 });
+  } catch (error) {
+    console.error("Error creating service:", error);
+    return NextResponse.json({ error: "Failed to create service" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const data = await req.json();
+    const { id, name, price, durationMinutes, category } = data;
+
+    if (!id) {
+      return NextResponse.json({ error: "Service ID is required" }, { status: 400 });
+    }
+
+    const service = await prisma.service.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(price && { price: parseFloat(price) }),
+        ...(durationMinutes && { durationMinutes: parseInt(durationMinutes, 10) }),
+        ...(category && { category }),
+      }
+    });
+
+    return NextResponse.json({ service });
+  } catch (error) {
+    console.error("Error updating service:", error);
+    return NextResponse.json({ error: "Failed to update service" }, { status: 500 });
+  }
+}
+
