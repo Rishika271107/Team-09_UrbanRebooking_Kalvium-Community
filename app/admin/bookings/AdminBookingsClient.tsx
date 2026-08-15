@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2, Search, Filter, Check, X, Calendar as CalendarIcon, Clock, MapPin, User, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Loader2, Search, Filter, Check, X, Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, RefreshCw, Bell } from "lucide-react";
 
 export default function AdminBookingsClient() {
   const searchParams = useSearchParams();
@@ -16,10 +16,16 @@ export default function AdminBookingsClient() {
   const [totalPages, setTotalPages] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [newRequestAlert, setNewRequestAlert] = useState<number>(0);
+  const [newBookingIds, setNewBookingIds] = useState<Set<string>>(new Set());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prevBookingIdsRef = useRef<Set<string>>(new Set());
 
   const fetchBookings = useCallback(async (silent = false, signal?: AbortSignal) => {
     if (!silent) setIsLoading(true);
+    if (silent) setIsRefreshing(true);
     try {
       const url = new URL("/api/admin/bookings", window.location.origin);
       url.searchParams.set("page", page.toString());
@@ -32,23 +38,46 @@ export default function AdminBookingsClient() {
         throw new Error(errData?.error || `Server error: ${res.status}`);
       }
       const data = await res.json();
-      setBookings(data.bookings ?? []);
+      const incoming: any[] = data.bookings ?? [];
+
+      // Detect truly new bookings since last poll
+      const incomingIds = new Set<string>(incoming.map((b: any) => b.id));
+      if (prevBookingIdsRef.current.size > 0) {
+        const brandNewIds = new Set<string>();
+        incomingIds.forEach(id => {
+          if (!prevBookingIdsRef.current.has(id)) brandNewIds.add(id);
+        });
+        if (brandNewIds.size > 0) {
+          const newPending = incoming.filter((b: any) => brandNewIds.has(b.id) && (b.status === "PENDING" || b.status === "DRAFT"));
+          if (newPending.length > 0) {
+            setNewRequestAlert(prev => prev + newPending.length);
+            setNewBookingIds(prev => new Set([...prev, ...newPending.map((b: any) => b.id)]));
+            // Clear highlight after 8 seconds
+            setTimeout(() => setNewBookingIds(new Set()), 8000);
+          }
+        }
+      }
+      prevBookingIdsRef.current = incomingIds;
+
+      setBookings(incoming);
       setTotalPages(data.pagination?.totalPages || 1);
+      setLastUpdated(new Date());
     } catch (error: any) {
       if (error?.name === "AbortError") return; // cancelled – ignore
       console.error("Failed to fetch bookings:", error);
       if (!silent) showToast("error", error?.message || "Failed to load bookings. Please try again.");
     } finally {
       if (!silent) setIsLoading(false);
+      setIsRefreshing(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter, searchQuery]);
 
-  // Initial fetch + auto-refresh every 30 seconds
+  // Initial fetch + auto-refresh every 5 seconds for near real-time updates
   useEffect(() => {
     const controller = new AbortController();
     fetchBookings(false, controller.signal);
-    intervalRef.current = setInterval(() => fetchBookings(true), 30_000);
+    intervalRef.current = setInterval(() => fetchBookings(true), 5_000);
     return () => {
       controller.abort();
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -102,6 +131,20 @@ export default function AdminBookingsClient() {
 
   return (
     <div className="space-y-4">
+      {/* New Request Alert Banner */}
+      {newRequestAlert > 0 && (
+        <div className="flex items-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold shadow-lg border bg-teal-50 border-teal-300 text-teal-900 animate-in slide-in-from-top-2 duration-300">
+          <Bell className="h-4 w-4 shrink-0 text-teal-600 animate-bounce" />
+          <span>🔔 {newRequestAlert} new booking request{newRequestAlert > 1 ? "s" : ""} just arrived!</span>
+          <button
+            onClick={() => setNewRequestAlert(0)}
+            className="ml-auto text-teal-600 opacity-70 hover:opacity-100 transition-opacity"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Toast notification */}
       {toast && (
         <div
@@ -130,14 +173,16 @@ export default function AdminBookingsClient() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 pr-4 py-2 w-full rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#047260] focus:border-transparent text-sm"
+            suppressHydrationWarning
           />
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
           <Filter className="h-4 w-4 text-slate-500" />
           <select 
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="w-full sm:w-auto rounded-lg border border-slate-300 py-2 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-[#047260]"
+            suppressHydrationWarning
           >
             <option value="">All Statuses</option>
             <option value="PENDING">Pending Requests</option>
@@ -146,6 +191,20 @@ export default function AdminBookingsClient() {
             <option value="COMPLETED">Completed</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
+          <button
+            onClick={() => fetchBookings(false)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            title="Refresh now"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-[#047260]' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          {lastUpdated && (
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
         </div>
       </div>
 
@@ -174,7 +233,14 @@ export default function AdminBookingsClient() {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {bookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={booking.id}
+                  className={`hover:bg-slate-50 transition-colors ${
+                    newBookingIds.has(booking.id)
+                      ? 'bg-teal-50 ring-2 ring-inset ring-teal-400 animate-pulse-once'
+                      : ''
+                  }`}
+                >
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-900">{booking.service?.name}</div>
                     <div className="flex items-center gap-1 text-slate-500 mt-1 text-xs">

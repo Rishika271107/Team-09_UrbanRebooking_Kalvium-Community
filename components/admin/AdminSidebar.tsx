@@ -116,6 +116,7 @@ export function AdminSidebar() {
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
           aria-label="Logout"
+          suppressHydrationWarning
         >
           <LogOut size={18} className="text-slate-400" aria-hidden="true" />
           Logout

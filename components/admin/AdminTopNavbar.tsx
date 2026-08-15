@@ -114,12 +114,14 @@ export function AdminTopNavbar() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search for bookings, customers..."
             className="w-full rounded-full border border-slate-300 bg-slate-50 py-2 pl-9 pr-10 text-sm outline-none transition-colors focus:border-[#047260] focus:bg-white focus:ring-1 focus:ring-[#047260]"
+            suppressHydrationWarning
           />
           {query && (
             <button
               onClick={() => setQuery("")}
               className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-700 focus:outline-none"
               aria-label="Clear search"
+              suppressHydrationWarning
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -134,6 +136,7 @@ export function AdminTopNavbar() {
             onClick={() => { setIsNotifOpen(!isNotifOpen); if (!isNotifOpen) fetchNotifications(); }}
             className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none"
             aria-label="Notifications"
+            suppressHydrationWarning
           >
             <Bell size={20} aria-hidden="true" />
             {unreadCount > 0 && (
@@ -176,7 +179,12 @@ export function AdminTopNavbar() {
                     <div
                       key={notif.id}
                       className={`flex gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors ${notif.readStatus ? "opacity-60" : "bg-teal-50/30"}`}
-                      onClick={() => markAsRead(notif.id)}
+                      onClick={() => {
+                        markAsRead(notif.id);
+                        if (notif.type.includes("BOOKING")) {
+                          window.location.href = notif.type === "BOOKING_REQUEST" ? "/admin/bookings?status=PENDING" : "/admin/bookings";
+                        }
+                      }}
                     >
                       <div className="mt-0.5 flex-shrink-0">
                         <NotifIcon type={notif.type} />
